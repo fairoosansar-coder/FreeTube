@@ -18,6 +18,27 @@
       <ft-element-list
         :data="shownResults"
       />
+      <div
+        v-if="loadError && shownResults.length === 0"
+        class="aegisEmptyState"
+        role="alert"
+      >
+        <FontAwesomeIcon
+          :icon="['fas', 'server']"
+          class="aegisEmptyIcon"
+        />
+        <h3>{{ t('Public video service unavailable') }}</h3>
+        <p>
+          {{ t('FreeTube Web unavailable help') }}
+        </p>
+        <button
+          type="button"
+          class="aegisRetryButton"
+          @click="fetchPopularInfo"
+        >
+          {{ t('Try again') }}
+        </button>
+      </div>
     </ft-card>
     <ft-refresh-widget
       :disable-refresh="isLoading"
@@ -46,6 +67,7 @@ import { KeyboardShortcuts } from '../../../constants'
 const { t } = useI18n()
 
 const isLoading = ref(false)
+const loadError = ref(false)
 
 const lastPopularRefreshTimestamp = computed(() => {
   return getRelativeTimeFromDate(store.getters.getLastPopularRefreshTimestamp, true)
@@ -72,6 +94,7 @@ onBeforeUnmount(() => {
 
 async function fetchPopularInfo() {
   isLoading.value = true
+  loadError.value = false
 
   try {
     const items = await getInvidiousPopularFeed()
@@ -82,6 +105,7 @@ async function fetchPopularInfo() {
     store.commit('setPopularCache', items)
   } catch (err) {
     isLoading.value = false
+    loadError.value = true
     const errorMessage = t('Invidious API Error (Click to copy)')
     showToast(`${errorMessage}: ${err}`, 10000, () => {
       copyToClipboard(err)

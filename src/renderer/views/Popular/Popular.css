@@ -8,6 +8,53 @@
   color: var(--primary-color);
 }
 
+.aegisEmptyState {
+  align-items: center;
+  background: color-mix(in srgb, var(--card-bg-color) 82%, #000);
+  border: 1px solid color-mix(in srgb, var(--primary-color) 24%, transparent);
+  border-radius: 14px;
+  color: var(--tertiary-text-color);
+  display: flex;
+  flex-direction: column;
+  margin-block: 36px 12px;
+  margin-inline: auto;
+  max-inline-size: 520px;
+  padding-block: 32px;
+  padding-inline: 32px;
+  text-align: center;
+}
+
+.aegisEmptyIcon {
+  color: var(--primary-color);
+  font-size: 26px;
+}
+
+.aegisEmptyState h3 {
+  color: var(--primary-text-color);
+  margin-block: 14px 6px;
+}
+
+.aegisEmptyState p {
+  line-height: 1.6;
+  margin: 0;
+}
+
+.aegisRetryButton {
+  background: var(--primary-color);
+  border: 0;
+  border-radius: 9px;
+  color: #171006;
+  cursor: pointer;
+  font-weight: 700;
+  margin-block-start: 18px;
+  padding-block: 10px;
+  padding-inline: 18px;
+}
+
+.aegisRetryButton:hover {
+  filter: brightness(1.08);
+}
+
 @media only screen and (width <= 680px) {
   .card {
     inline-size: 90%;

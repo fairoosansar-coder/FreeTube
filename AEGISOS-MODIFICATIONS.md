@@ -21,6 +21,10 @@ It is not an official FreeTube release or service.
   embedded web target.
 - Default to a compact AegisOS-compatible dark theme, Popular as Home,
   SponsorBlock enabled, and a quieter watch page.
+- Add a lightweight boot screen and a clear retry/fallback state when public
+  Invidious capacity is unavailable.
+- Rewrite insecure internal Invidious thumbnail origins back to the selected
+  instance's HTTPS public origin.
 
 The browser build uses FreeTube's Invidious backend mode. It does not contain
 the Electron desktop runtime or FreeTube's local extractor.

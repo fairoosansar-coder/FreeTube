@@ -972,6 +972,33 @@ function normalizeManyInvidiousVideosAttributes(videos, fallbackAuthorId = null)
  */
 function normalizeOneInvidiousVideoAttributes(video, fallbackAuthorId = null) {
   if (video.authorId === '') video.authorId = fallbackAuthorId
+
+  if (Array.isArray(video.videoThumbnails)) {
+    video.videoThumbnails = video.videoThumbnails.map((thumbnail) => ({
+      ...thumbnail,
+      url: normalizeInvidiousThumbnailUrl(thumbnail.url)
+    }))
+  }
+}
+
+/**
+ * Some public instances advertise an internal or insecure thumbnail origin.
+ * Keep known Invidious image paths on the selected HTTPS instance.
+ * @param {string} value
+ * @returns {string}
+ */
+function normalizeInvidiousThumbnailUrl(value) {
+  try {
+    const instance = new URL(getCurrentInstanceUrl())
+    const thumbnail = new URL(value, instance)
+    if (thumbnail.pathname.startsWith('/vi/') || thumbnail.pathname.startsWith('/ggpht/')) {
+      thumbnail.protocol = instance.protocol
+      thumbnail.host = instance.host
+    }
+    return thumbnail.toString()
+  } catch {
+    return value
+  }
 }
 
 /**
