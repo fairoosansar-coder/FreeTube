@@ -1,0 +1,11 @@
+{
+  "name": "AegisOS FreeTube Web",
+  "upstreamRelease": "v0.25.1-beta",
+  "upstreamRevision": "d429de4feb35a177597f409c2c8d8ccd6037313e",
+  "revision": "28f5c15d4463b44b5ca2b8e9d597240eacd08a1f",
+  "builtAt": "2026-08-06T15:56:01.516Z",
+  "license": "AGPL-3.0-or-later",
+  "source": "https://github.com/fairoosansar-coder/FreeTube/tree/28f5c15d4463b44b5ca2b8e9d597240eacd08a1f",
+  "sourceArchive": "source/aegisos-freetube-web-28f5c15d4463b44b5ca2b8e9d597240eacd08a1f.tar.gz",
+  "sourceArchiveSha256": "15a71f8b0c1dbc0655624232831d86e9129387643c15ab6f1f403429d2addcf3"
+}
