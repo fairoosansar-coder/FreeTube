@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: write
+  pages: write
 
 concurrency:
   group: aegisos-freetube-web-pages
@@ -14,18 +15,22 @@ concurrency:
 
 jobs:
   build-and-publish:
+    if: github.ref == 'refs/heads/aegisos-web-v0.25.1'
     runs-on: ubuntu-latest
 
     steps:
       - name: Clone exact source without external actions
         run: |
-          git clone --depth=1 --single-branch --branch "${GITHUB_REF_NAME}" \
-            "https://github.com/${GITHUB_REPOSITORY}.git" source
+          test "${GITHUB_REF}" = "refs/heads/aegisos-web-v0.25.1"
+          git init source
+          git -C source remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          git -C source fetch --no-tags --depth=1 origin "${GITHUB_SHA}"
+          git -C source checkout --detach FETCH_HEAD
           test "$(git -C source rev-parse HEAD)" = "${GITHUB_SHA}"
 
       - name: Select bundled Node.js 24 and install pinned pnpm
         run: |
-          node_binary="$(find "${RUNNER_TOOL_CACHE}/node" -path '*/x64/bin/node' -type f | sort -V | tail -1)"
+          node_binary="$(find "${RUNNER_TOOL_CACHE}/node" -path '*/24.*/x64/bin/node' -type f -perm -111 | sort -V | tail -1)"
           test -n "${node_binary}"
           node_directory="$(dirname "${node_binary}")"
           echo "${node_directory}" >> "${GITHUB_PATH}"
@@ -67,3 +72,13 @@ jobs:
           gh auth setup-git
           git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
           git push --force origin HEAD:gh-pages
+
+      - name: Request GitHub Pages build explicitly
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          pages_response="$(gh api --include --method POST \
+            "repos/${GITHUB_REPOSITORY}/pages/builds")"
+          response_status="$(printf '%s\n' "${pages_response}" | head -1)"
+          printf '%s\n' "${response_status}"
+          printf '%s\n' "${response_status}" | grep -Eq '^HTTP/[0-9.]+ 201'
