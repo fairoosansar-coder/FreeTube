@@ -187,20 +187,21 @@ it can be safely elided. This looks quite pleasant on this theme. */
 
 .system[data-system-theme*='dark'],
 .dark {
-  --primary-text-color: #eee;
-  --secondary-text-color: #ddd;
-  --tertiary-text-color: #999;
-  --title-color: #eee;
-  --bg-color: #212121;
+  /* Modified 2026-08-06: quieter surfaces for the AegisOS web edition. */
+  --primary-text-color: #eef1f7;
+  --secondary-text-color: #c7ccd8;
+  --tertiary-text-color: #858b9b;
+  --title-color: #eef1f7;
+  --bg-color: #080b11;
   --favorite-icon-color: #0f0;
-  --card-bg-color: #303030;
-  --secondary-card-bg-color: rgb(0 0 0 / 75%);
-  --scrollbar-color: #414141;
-  --scrollbar-color-hover: #757575;
-  --side-nav-color: #262626;
-  --side-nav-hover-color: #212121;
-  --side-nav-active-color: #303030;
-  --search-bar-color: #262626;
+  --card-bg-color: #11151f;
+  --secondary-card-bg-color: #0c1018;
+  --scrollbar-color: #262c38;
+  --scrollbar-color-hover: #3b4352;
+  --side-nav-color: #0d1119;
+  --side-nav-hover-color: #171c27;
+  --side-nav-active-color: #222937;
+  --search-bar-color: #0b0f16;
 }
 
 .black {

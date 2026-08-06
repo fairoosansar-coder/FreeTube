@@ -1,0 +1,28 @@
+# AegisOS FreeTube Web modifications
+
+This is an unofficial web edition of FreeTube for display inside AegisOS.
+It is not an official FreeTube release or service.
+
+- Upstream release: `v0.25.1-beta`
+- Upstream commit: `d429de4feb35a177597f409c2c8d8ccd6037313e`
+- Modified by: `fairoosansar-coder`
+- First modification date: `2026-08-06`
+- License: GNU Affero General Public License v3.0 or later
+
+## Changes
+
+- Build the upstream browser target at a repository-relative public path.
+- Show the exact deployed fork revision and corresponding source in the UI.
+- Remove the broken web manifest/service-worker registration from embed builds.
+- Simplify navigation to Home, Subscriptions, Playlists, History, Settings,
+  and Source & Legal.
+- Remove duplicate channel navigation, the new-window action, the profile
+  bubble, social/donation clutter, and settings that do not apply to this
+  embedded web target.
+- Default to a compact AegisOS-compatible dark theme, Popular as Home,
+  SponsorBlock enabled, and a quieter watch page.
+
+The browser build uses FreeTube's Invidious backend mode. It does not contain
+the Electron desktop runtime or FreeTube's local extractor.
+
+See [SOURCE.md](SOURCE.md) for reproducible build and source-access details.

@@ -224,3 +224,26 @@
     }
   }
 }
+
+.aegisMode {
+  align-items: center;
+  color: var(--tertiary-text-color);
+  display: flex;
+  font-size: 12px;
+  gap: 7px;
+  justify-content: flex-end;
+  margin-inline-end: 18px;
+  white-space: nowrap;
+
+  .modeDot {
+    background: #34d399;
+    border-radius: 50%;
+    box-shadow: 0 0 10px rgb(52 211 153 / 45%);
+    block-size: 7px;
+    inline-size: 7px;
+  }
+
+  @media only screen and (width <= 760px) {
+    display: none;
+  }
+}

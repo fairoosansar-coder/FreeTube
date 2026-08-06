@@ -15,6 +15,11 @@ const {
 } = require('./getShakaLocales')
 
 const isDevMode = process.env.NODE_ENV === 'development'
+// Modified 2026-08-06 for the AegisOS web edition. Keep the deployed
+// revision visible to the interactive UI so every user can reach the exact
+// corresponding source for this AGPL build.
+const aegisForkCommit = process.env.GITHUB_SHA || 'development'
+const publicPath = process.env.AEGISOS_PUBLIC_PATH || '/'
 
 const { version: swiperVersion } = JSON.parse(fs.readFileSync(path.join(__dirname, '../node_modules/swiper/package.json')))
 
@@ -29,6 +34,8 @@ const config = {
   output: {
     path: path.join(__dirname, '../dist/web'),
     filename: '[name].js',
+    publicPath,
+    clean: true,
   },
   externals: {
     'youtubei.js': '{}',
@@ -135,6 +142,8 @@ const config = {
       'process.env.IS_ELECTRON': false,
       'process.env.IS_ELECTRON_MAIN': false,
       'process.env.SUPPORTS_LOCAL_API': false,
+      'process.env.AEGISOS_WEB_EDITION': true,
+      'process.env.AEGISOS_FORK_COMMIT': JSON.stringify(aegisForkCommit),
       __VUE_OPTIONS_API__: 'true',
       __VUE_PROD_DEVTOOLS__: 'false',
       __VUE_PROD_HYDRATION_MISMATCH_DETAILS__: 'false',
@@ -202,15 +211,11 @@ config.plugins.push(
   new CopyWebpackPlugin({
     patterns: [
       {
-        from: path.join(__dirname, '../static/pwabuilder-sw.js'),
-        to: path.join(__dirname, '../dist/web/pwabuilder-sw.js'),
-      },
-      {
         from: path.join(__dirname, '../static'),
         to: path.join(__dirname, '../dist/web/static'),
         globOptions: {
           dot: true,
-          ignore: ['**/.*', '**/locales/**', '**/pwabuilder-sw.js', '**/dashFiles/**', '**/storyboards/**'],
+          ignore: ['**/.*', '**/locales/**', '**/pwabuilder-sw.js', '**/manifest.json', '**/dashFiles/**', '**/storyboards/**'],
         },
       },
       {

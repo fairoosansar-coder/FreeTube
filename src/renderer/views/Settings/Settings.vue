@@ -1,3 +1,4 @@
+<!-- Modified 2026-08-06 for the AegisOS web edition. -->
 <template>
   <div class="settingsPage">
     <template v-if="unlocked">
@@ -25,20 +26,6 @@
         v-show="isInDesktopView || settingsSectionTypeOpenInMobile != null"
         class="settingsContent"
       >
-        <div class="switchRow">
-          <FtButton
-            v-if="USING_ELECTRON"
-            :label="t('KeyboardShortcutPrompt.Show Keyboard Shortcuts')"
-            :icon="['fas', 'keyboard']"
-            @click="showKeyboardShortcutPrompt"
-          />
-          <FtToggleSwitch
-            class="settingsToggle"
-            :label="t('Settings.Sort Settings Sections (A-Z)')"
-            :default-value="settingsSectionSortEnabled"
-            @change="updateSettingsSectionSortEnabled"
-          />
-        </div>
         <div class="settingsSections">
           <component
             :is="section.component"
@@ -67,24 +54,16 @@ import { useI18n } from 'vue-i18n'
 import GeneralSettings from '../../components/GeneralSettings/GeneralSettings.vue'
 import ThemeSettings from '../../components/ThemeSettings.vue'
 import PlayerSettings from '../../components/PlayerSettings/PlayerSettings.vue'
-import ExternalPlayerSettings from '../../components/ExternalPlayerSettings.vue'
 import SubscriptionSettings from '../../components/SubscriptionSettings/SubscriptionSettings.vue'
 import PrivacySettings from '../../components/PrivacySettings.vue'
 import DataSettings from '../../components/DataSettings/DataSettings.vue'
 import DistractionSettings from '../../components/DistractionSettings/DistractionSettings.vue'
-import ProxySettings from '../../components/ProxySettings/ProxySettings.vue'
 import SponsorBlockSettings from '../../components/SponsorBlockSettings.vue'
-import ParentalControlSettings from '../../components/ParentalControlSettings.vue'
-import ExperimentalSettings from '../../components/ExperimentalSettings/ExperimentalSettings.vue'
-import PasswordSettings from '../../components/PasswordSettings/PasswordSettings.vue'
 import PasswordDialog from '../../components/PasswordDialog/PasswordDialog.vue'
-import FtToggleSwitch from '../../components/FtToggleSwitch/FtToggleSwitch.vue'
-import FtButton from '../../components/FtButton/FtButton.vue'
 import FtSettingsMenu from '../../components/FtSettingsMenu/FtSettingsMenu.vue'
 
 import store from '../../store/index'
 
-const USING_ELECTRON = !!process.env.IS_ELECTRON
 const SETTINGS_MOBILE_WIDTH_THRESHOLD = 1015
 
 const { locale, t } = useI18n()
@@ -110,14 +89,6 @@ const settingsComponentsData = computed(() => {
       icon: ['fas', 'circle-play'],
       component: PlayerSettings
     },
-    ...(process.env.IS_ELECTRON
-      ? [{
-          type: 'external-player',
-          title: t('Settings.External Player Settings.External Player Settings'),
-          icon: ['fas', 'clapperboard'],
-          component: ExternalPlayerSettings
-        }]
-      : []),
     {
       type: 'subscription',
       title: t('Settings.Subscription Settings.Subscription Settings'),
@@ -131,12 +102,6 @@ const settingsComponentsData = computed(() => {
       component: DistractionSettings
     },
     {
-      type: 'parental-control',
-      title: t('Settings.Parental Control Settings.Parental Control Settings'),
-      icon: ['fas', 'user-lock'],
-      component: ParentalControlSettings
-    },
-    {
       type: 'privacy',
       title: t('Settings.Privacy Settings.Privacy Settings'),
       icon: ['fas', 'lock'],
@@ -148,16 +113,6 @@ const settingsComponentsData = computed(() => {
       icon: ['fas', 'database'],
       component: DataSettings
     },
-    ...(process.env.IS_ELECTRON
-      ? [
-          {
-            type: 'proxy',
-            title: t('Settings.Proxy Settings.Proxy Settings'),
-            icon: ['fas', 'network-wired'],
-            component: ProxySettings
-          }
-        ]
-      : []),
     {
       type: 'sponsor-block',
       title: t('Settings.SponsorBlock Settings.SponsorBlock Settings'),
@@ -165,20 +120,6 @@ const settingsComponentsData = computed(() => {
       icon: ['fas', 'shield'],
       component: SponsorBlockSettings
     },
-    {
-      type: 'password',
-      title: t('Settings.Password Settings.Password Settings'),
-      icon: ['fas', 'key'],
-      component: PasswordSettings
-    },
-    ...(process.env.IS_ELECTRON
-      ? [{
-          type: 'experimental',
-          title: t('Settings.Experimental Settings.Experimental Settings'),
-          icon: ['fas', 'flask'],
-          component: ExperimentalSettings
-        }]
-      : []),
   ]
 })
 
@@ -226,17 +167,6 @@ onBeforeUnmount(() => {
   document.removeEventListener('scroll', markScrolledToSectionAsActive)
   window.removeEventListener('resize', handleResize)
 })
-
-function showKeyboardShortcutPrompt() {
-  store.dispatch('showKeyboardShortcutPrompt')
-}
-
-/**
- * @param {boolean} value
- */
-function updateSettingsSectionSortEnabled(value) {
-  store.dispatch('updateSettingsSectionSortEnabled', value)
-}
 
 function handleMounted() {
   handleResize()

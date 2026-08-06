@@ -1,3 +1,4 @@
+<!-- Modified 2026-08-06 for the AegisOS web edition. -->
 <template>
   <nav
     class="topNav"
@@ -53,17 +54,6 @@
           :icon="['fas', 'search']"
         />
       </button>
-      <button
-        class="navNewWindowButton navButton"
-        :aria-label="t('Open New Window')"
-        :title="newWindowText"
-        @click="createNewWindow"
-      >
-        <FontAwesomeIcon
-          class="navIcon"
-          :icon="['fas', 'clone']"
-        />
-      </button>
       <RouterLink
         v-if="!hideHeaderLogo"
         class="logo"
@@ -114,7 +104,13 @@
         </button>
       </div>
     </div>
-    <FtProfileSelector class="side profiles" />
+    <div
+      class="side aegisMode"
+      :title="privateWebTitle"
+    >
+      <span class="modeDot" />
+      <span>{{ privateWebLabel }}</span>
+    </div>
   </nav>
 </template>
 
@@ -125,7 +121,6 @@ import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 
 import FtInput from '../FtInput/FtInput.vue'
-import FtProfileSelector from '../FtProfileSelector/FtProfileSelector.vue'
 import FtIconButton from '../FtIconButton/FtIconButton.vue'
 
 import store from '../../store/index'
@@ -137,6 +132,8 @@ import { clearLocalSearchSuggestionsSession, getLocalSearchSuggestions } from '.
 import { getInvidiousSearchSuggestions } from '../../helpers/api/invidious'
 
 const { t } = useI18n()
+const privateWebLabel = 'Private web'
+const privateWebTitle = 'Private web mode uses an Invidious instance and stores your library locally'
 const router = useRouter()
 const route = useRoute()
 
@@ -235,20 +232,6 @@ function historyForward(offset) {
   } else {
     router.forward()
   }
-}
-
-const newWindowText = computed(() => {
-  return localizeAndAddKeyboardShortcutToActionTitle(
-    t('Open New Window'),
-    KeyboardShortcuts.APP.GENERAL.NEW_WINDOW
-  )
-})
-
-function createNewWindow() {
-  const url = new URL(window.location.href)
-  url.hash = landingPage.value
-
-  window.open(url.toString(), '_blank', 'noreferrer')
 }
 
 const usingOnlySearchHistoryResults = computed(() => lastSuggestionQuery.value.length === 0)
