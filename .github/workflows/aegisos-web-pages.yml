@@ -6,66 +6,64 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write
 
 concurrency:
   group: aegisos-freetube-web-pages
   cancel-in-progress: true
 
 jobs:
-  build-and-deploy:
+  build-and-publish:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
-      - name: Check out exact source
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-        with:
-          fetch-depth: 0
-          persist-credentials: false
+      - name: Clone exact source without external actions
+        run: |
+          git clone --depth=1 --single-branch --branch "${GITHUB_REF_NAME}" \
+            "https://github.com/${GITHUB_REPOSITORY}.git" source
+          test "$(git -C source rev-parse HEAD)" = "${GITHUB_SHA}"
 
-      - name: Use Node.js 24
-        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
-        with:
-          node-version: 24.x
-          package-manager-cache: false
+      - name: Select bundled Node.js 24 and install pinned pnpm
+        run: |
+          node_binary="$(find "${RUNNER_TOOL_CACHE}/node" -path '*/x64/bin/node' -type f | sort -V | tail -1)"
+          test -n "${node_binary}"
+          node_directory="$(dirname "${node_binary}")"
+          echo "${node_directory}" >> "${GITHUB_PATH}"
+          export PATH="${node_directory}:${PATH}"
+          node -e "if (Number(process.versions.node.split('.')[0]) !== 24) process.exit(1)"
+          npm install --global --prefix "${RUNNER_TEMP}/pnpm" pnpm@10.34.5
+          echo "${RUNNER_TEMP}/pnpm/bin" >> "${GITHUB_PATH}"
 
-      - name: Install pnpm
-        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
-        with:
-          version: 10
-          cache: false
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Build isolated web edition
+      - name: Build isolated web edition and corresponding source
+        working-directory: source
         env:
           AEGISOS_PUBLIC_PATH: /FreeTube/
-        run: pnpm run pack:web
-
-      - name: Publish license, notices, and exact corresponding source
-        shell: bash
         run: |
+          pnpm install --frozen-lockfile
+          pnpm run pack:web
           mkdir -p dist/web/source
-          git archive --format=tar.gz --prefix="aegisos-freetube-web-${GITHUB_SHA}/" -o "dist/web/source/aegisos-freetube-web-${GITHUB_SHA}.tar.gz" "$GITHUB_SHA"
+          git archive --format=tar.gz \
+            --prefix="aegisos-freetube-web-${GITHUB_SHA}/" \
+            -o "dist/web/source/aegisos-freetube-web-${GITHUB_SHA}.tar.gz" \
+            "${GITHUB_SHA}"
           cp LICENSE AEGISOS-MODIFICATIONS.md SOURCE.md THIRD_PARTY_NOTICES.md dist/web/
           pnpm licenses list --json > dist/web/THIRD_PARTY_LICENSES.json
           node _scripts/writeAegisBuildInfo.mjs
           touch dist/web/.nojekyll
 
-      - name: Configure GitHub Pages
-        uses: actions/configure-pages@v5
-
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: dist/web
-
-      - name: Deploy Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+      - name: Publish generated site branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          publish_directory="${RUNNER_TEMP}/aegisos-freetube-pages"
+          mkdir -p "${publish_directory}"
+          cp -R source/dist/web/. "${publish_directory}/"
+          cd "${publish_directory}"
+          git init --initial-branch=gh-pages
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add --all
+          git commit -m "deploy: ${GITHUB_SHA}"
+          gh auth setup-git
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          git push --force origin HEAD:gh-pages
