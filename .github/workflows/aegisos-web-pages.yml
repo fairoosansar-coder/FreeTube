@@ -62,9 +62,11 @@ jobs:
       - name: Verify the project-path artifact and source identity
         working-directory: source
         run: |
-          test -s dist/web/web.js
-          grep -Fq 'src="/FreeTube/web.js"' dist/web/index.html
-          grep -Fq 'n.p="/FreeTube/"' dist/web/web.js
+          web_bundle="$(find dist/web -maxdepth 1 -type f -name 'web.*.js' -print -quit)"
+          test -n "${web_bundle}"
+          test -s "${web_bundle}"
+          grep -Eq 'src="/FreeTube/web\.[^"]+\.js"' dist/web/index.html
+          grep -Fq 'n.p="/FreeTube/"' "${web_bundle}"
           node -e "const i=require('./dist/web/build-info.json'); if(i.revision!==process.env.GITHUB_SHA || i.source!=='https://github.com/fairoosansar-coder/FreeTube/tree/'+process.env.GITHUB_SHA) process.exit(1)"
           test -s "dist/web/source/aegisos-freetube-web-${GITHUB_SHA}.tar.gz"
 

@@ -8,6 +8,14 @@ const state = {
   invidiousInstancesList: null
 }
 
+function normalizedOrigin(value) {
+  try {
+    return new URL(value).origin
+  } catch {
+    return ''
+  }
+}
+
 const getters = {
   getCurrentInvidiousInstance(state) {
     return state.currentInvidiousInstance
@@ -27,7 +35,7 @@ const getters = {
 }
 
 const actions = {
-  async fetchInvidiousInstancesFromFile({ commit }) {
+  async fetchInvidiousInstancesFromFile({ commit, dispatch }) {
     const url = createWebURL('/static/invidious-instances.json')
     const proxyOrigins = process.env.AEGISOS_WEB_EDITION
       ? await getAegisProxyOrigins()
@@ -43,10 +51,13 @@ const actions = {
     })
 
     commit('setInvidiousInstancesList', instances)
+    if (process.env.AEGISOS_WEB_EDITION) {
+      dispatch('reconcileCurrentInvidiousInstance')
+    }
   },
 
   /// fetch invidious instances from site and overwrite static file.
-  async fetchInvidiousInstances({ commit }) {
+  async fetchInvidiousInstances({ commit, dispatch }) {
     const requestUrl = 'https://api.invidious.io/instances.json'
     const timeout = process.env.AEGISOS_WEB_EDITION ? 6_000 : 15_000
     const proxyOrigins = process.env.AEGISOS_WEB_EDITION
@@ -71,6 +82,9 @@ const actions = {
 
       if (instances.length !== 0) {
         commit('setInvidiousInstancesList', instances)
+        if (process.env.AEGISOS_WEB_EDITION) {
+          dispatch('reconcileCurrentInvidiousInstance')
+        }
       } else {
         console.warn('using static file for invidious instances')
       }
@@ -103,6 +117,24 @@ const actions = {
     if (instance !== '') {
       commit('setCurrentInvidiousInstance', instance)
     }
+    return instance
+  },
+
+  reconcileCurrentInvidiousInstance({ commit, state }) {
+    const instanceList = Array.isArray(state.invidiousInstancesList)
+      ? state.invidiousInstancesList
+      : []
+    const currentOrigin = normalizedOrigin(state.currentInvidiousInstanceUrl)
+    const currentIsApproved = currentOrigin !== '' && instanceList.some(instance => {
+      return normalizedOrigin(instance) === currentOrigin
+    })
+
+    if (currentIsApproved) {
+      return state.currentInvidiousInstanceUrl
+    }
+
+    const instance = instanceList[0] ?? ''
+    commit('setCurrentInvidiousInstance', instance)
     return instance
   }
 }

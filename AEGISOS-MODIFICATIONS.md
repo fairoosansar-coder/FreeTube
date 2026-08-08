@@ -29,6 +29,14 @@ It is not an official FreeTube release or service.
   `postMessage` bridge for narrowly scoped `/api/v1/...` JSON requests and
   constrain instance selection to the origins advertised by that relay;
   retain ordinary browser fetching as the hosted web fallback.
+- Authenticate each native frame with a short-lived bridge token kept in the
+  URL fragment (and therefore out of server logs), tolerate WebKit's opaque
+  custom-protocol parent origin, retry the startup handshake, and report a
+  bridge failure instead of silently attempting a blocked fetch.
+- Reconcile persisted/default Invidious settings against the relay-advertised
+  origins at startup so an obsolete saved server cannot bypass the relay.
+- Publish content-hashed JavaScript bundles so an upgraded AegisOS frame never
+  reuses an older bridge client from the browser cache.
 - Rewrite insecure internal Invidious thumbnail origins back to the selected
   instance's HTTPS public origin.
 

@@ -47,18 +47,8 @@ export async function invidiousFetch(url) {
       }
     : undefined
 
-  const publicInstances = store.getters.getInvidiousInstancesList
-  const requestOrigin = new URL(url).origin
-  const usesPublicInstance = Array.isArray(publicInstances) && publicInstances.some(instance => {
-    try {
-      return new URL(instance).origin === requestOrigin
-    } catch {
-      return false
-    }
-  })
-
   if (process.env.AEGISOS_WEB_EDITION) {
-    if (!authorization && usesPublicInstance) {
+    if (!authorization) {
       const proxiedResponse = await fetchThroughAegisProxy(url)
       if (proxiedResponse) {
         const servingInstance = proxiedResponse.headers.get('x-aegisos-invidious-instance')

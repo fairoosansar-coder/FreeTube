@@ -1,8 +1,22 @@
 const CHANNEL = 'aegisos:freetube:v1'
+const BRIDGE_VERSION = 'v2'
+const OPAQUE_ORIGIN = 'null'
 const pending = new Map()
 let listenerInstalled = false
 let proxyConfigPromise = null
 let parentOrigin = null
+let parentTargetOrigin = null
+
+const bridgeHashQuery = window.location.hash.indexOf('?')
+const bridgeParams = bridgeHashQuery === -1
+  ? new URLSearchParams()
+  : new URLSearchParams(window.location.hash.slice(bridgeHashQuery + 1))
+const requestedBridgeVersion = bridgeParams.get('aegisBridge')
+const bridgeToken = bridgeParams.get('aegisBridgeToken')
+const expectsNativeBridge = requestedBridgeVersion === BRIDGE_VERSION &&
+  typeof bridgeToken === 'string' &&
+  bridgeToken.length >= 16 &&
+  bridgeToken.length <= 128
 
 const NATIVE_PARENT_ORIGINS = new Set([
   'tauri://localhost',
@@ -12,6 +26,10 @@ const NATIVE_PARENT_ORIGINS = new Set([
 
 function isAllowedParentOrigin(origin) {
   if (NATIVE_PARENT_ORIGINS.has(origin)) return true
+  // WKWebView can serialize a non-HTTP custom-protocol parent as an opaque
+  // origin. The per-frame token and exact event.source check authenticate that
+  // parent without granting trust to unrelated opaque frames.
+  if (expectsNativeBridge && origin === OPAQUE_ORIGIN) return true
   if (process.env.NODE_ENV === 'production') return false
 
   try {
@@ -35,12 +53,19 @@ function installListener() {
     if (event.source !== window.parent) return
     const message = event.data
     if (!message || message.channel !== CHANNEL || typeof message.id !== 'string') return
+    if (expectsNativeBridge && message.token !== bridgeToken) return
 
     const entry = pending.get(message.id)
     if (!entry || message.type !== entry.responseType) return
     if (message.type === 'probe-result') {
       if (!isAllowedParentOrigin(event.origin)) return
       parentOrigin = event.origin
+      // A custom or opaque protocol cannot be used reliably as targetOrigin in
+      // every WebKit release. Messages still go only to window.parent and are
+      // bound to the unguessable per-frame token.
+      parentTargetOrigin = event.origin === OPAQUE_ORIGIN || event.origin === 'tauri://localhost'
+        ? '*'
+        : event.origin
     } else if (parentOrigin === null || event.origin !== parentOrigin) {
       return
     }
@@ -66,18 +91,27 @@ function sendToParent(type, responseType, payload, timeoutMs) {
 
     pending.set(id, { responseType, resolve, timeout })
     window.parent.postMessage(
-      { channel: CHANNEL, type, id, ...payload },
-      type === 'probe' ? '*' : parentOrigin
+      {
+        channel: CHANNEL,
+        type,
+        id,
+        ...(expectsNativeBridge ? { token: bridgeToken } : {}),
+        ...payload
+      },
+      type === 'probe' ? '*' : parentTargetOrigin
     )
   })
 }
 
-async function getNativeProxyConfig() {
-  if (window.parent === window) return null
-  if (!proxyConfigPromise) {
-    proxyConfigPromise = sendToParent('probe', 'probe-result', {}, 1_500)
-      .then(message => {
-        if (message.available !== true || !Array.isArray(message.origins)) return null
+function wait(delayMs) {
+  return new Promise(resolve => window.setTimeout(resolve, delayMs))
+}
+
+async function probeNativeProxyConfig() {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const message = await sendToParent('probe', 'probe-result', {}, 2_500)
+      if (message.available === true && Array.isArray(message.origins)) {
         const origins = message.origins.filter(origin => {
           if (typeof origin !== 'string') return false
           try {
@@ -88,8 +122,20 @@ async function getNativeProxyConfig() {
           }
         })
         return { origins }
-      })
-      .catch(() => null)
+      }
+    } catch { }
+
+    if (attempt < 2) {
+      await wait(200 * (attempt + 1))
+    }
+  }
+  return null
+}
+
+async function getNativeProxyConfig() {
+  if (window.parent === window) return null
+  if (!proxyConfigPromise) {
+    proxyConfigPromise = probeNativeProxyConfig()
   }
   const config = await proxyConfigPromise
   if (config === null) proxyConfigPromise = null
@@ -118,7 +164,12 @@ export async function fetchThroughAegisProxy(input) {
     return null
   }
   const approvedOrigins = await getAegisProxyOrigins()
-  if (approvedOrigins === null) return null
+  if (approvedOrigins === null) {
+    if (expectsNativeBridge) {
+      throw new Error('AegisOS native video bridge did not answer. Reload FreeTube to reconnect it.')
+    }
+    return null
+  }
   if (!approvedOrigins.includes(url.origin)) {
     throw new Error('FreeTube selected a video service that the installed AegisOS relay does not approve')
   }
