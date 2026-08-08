@@ -172,15 +172,25 @@ onMounted(async () => {
   updateTheme()
 
   await store.dispatch('fetchInvidiousInstancesFromFile')
+
+  // The web edition cannot use FreeTube's local extractor. Resolve the live
+  // CORS-capable Invidious pool before mounting a route so the first request
+  // does not race a stale bundled instance list.
+  if (process.env.AEGISOS_WEB_EDITION) {
+    await store.dispatch('fetchInvidiousInstances')
+  }
+
   if (defaultInvidiousInstance.value === '') {
     await store.dispatch('setRandomCurrentInvidiousInstance')
   }
 
-  store.dispatch('fetchInvidiousInstances').then(() => {
-    if (defaultInvidiousInstance.value === '') {
-      store.dispatch('setRandomCurrentInvidiousInstance')
-    }
-  })
+  if (!process.env.AEGISOS_WEB_EDITION) {
+    store.dispatch('fetchInvidiousInstances').then(() => {
+      if (defaultInvidiousInstance.value === '') {
+        store.dispatch('setRandomCurrentInvidiousInstance')
+      }
+    })
+  }
 
   store.dispatch('grabAllProfiles', t('Profile.All Channels')).then(() => {
     store.dispatch('grabHistory')

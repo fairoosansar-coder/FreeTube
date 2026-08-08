@@ -6,8 +6,9 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
   pages: write
+  id-token: write
 
 concurrency:
   group: aegisos-freetube-web-pages
@@ -17,6 +18,9 @@ jobs:
   build-and-publish:
     if: github.ref == 'refs/heads/aegisos-web-v0.25.1'
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
       - name: Clone exact source without external actions
@@ -54,31 +58,24 @@ jobs:
           cp LICENSE AEGISOS-MODIFICATIONS.md SOURCE.md THIRD_PARTY_NOTICES.md dist/web/
           pnpm licenses list --json > dist/web/THIRD_PARTY_LICENSES.json
           node _scripts/writeAegisBuildInfo.mjs
-          touch dist/web/.nojekyll
 
-      - name: Publish generated site branch
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - name: Verify the project-path artifact and source identity
+        working-directory: source
         run: |
-          publish_directory="${RUNNER_TEMP}/aegisos-freetube-pages"
-          mkdir -p "${publish_directory}"
-          cp -R source/dist/web/. "${publish_directory}/"
-          cd "${publish_directory}"
-          git init --initial-branch=gh-pages
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add --all
-          git commit -m "deploy: ${GITHUB_SHA}"
-          gh auth setup-git
-          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
-          git push --force origin HEAD:gh-pages
+          test -s dist/web/web.js
+          grep -Fq 'src="/FreeTube/web.js"' dist/web/index.html
+          grep -Fq 'n.p="/FreeTube/"' dist/web/web.js
+          node -e "const i=require('./dist/web/build-info.json'); if(i.revision!==process.env.GITHUB_SHA || i.source!=='https://github.com/fairoosansar-coder/FreeTube/tree/'+process.env.GITHUB_SHA) process.exit(1)"
+          test -s "dist/web/source/aegisos-freetube-web-${GITHUB_SHA}.tar.gz"
 
-      - name: Request GitHub Pages build explicitly
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          pages_response="$(gh api --include --method POST \
-            "repos/${GITHUB_REPOSITORY}/pages/builds")"
-          response_status="$(printf '%s\n' "${pages_response}" | head -1)"
-          printf '%s\n' "${response_status}"
-          printf '%s\n' "${response_status}" | grep -Eq '^HTTP/[0-9.]+ 201'
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload GitHub Pages artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: source/dist/web
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

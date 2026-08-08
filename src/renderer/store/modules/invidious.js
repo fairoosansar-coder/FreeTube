@@ -42,8 +42,12 @@ const actions = {
   /// fetch invidious instances from site and overwrite static file.
   async fetchInvidiousInstances({ commit }) {
     const requestUrl = 'https://api.invidious.io/instances.json'
+    const timeout = process.env.AEGISOS_WEB_EDITION ? 6_000 : 15_000
     try {
-      const response = await fetchWithTimeout(15_000, requestUrl)
+      const response = await fetchWithTimeout(timeout, requestUrl)
+      if (!response.ok) {
+        throw new Error(`Invidious instance directory returned HTTP ${response.status}`)
+      }
       const json = await response.json()
       const instances = json.filter((instance) => {
         return !(instance[0].includes('.onion') ||
@@ -61,7 +65,7 @@ const actions = {
       }
     } catch (err) {
       if (err.name === 'TimeoutError') {
-        console.error('Fetching the Invidious instance list timed out after 15 seconds. Falling back to local copy.')
+        console.error(`Fetching the Invidious instance list timed out after ${timeout / 1000} seconds. Falling back to local copy.`)
       } else {
         console.error(err)
       }
@@ -70,7 +74,25 @@ const actions = {
 
   setRandomCurrentInvidiousInstance({ commit, state }) {
     const instanceList = state.invidiousInstancesList
-    commit('setCurrentInvidiousInstance', randomArrayItem(instanceList))
+    const instance = Array.isArray(instanceList) && instanceList.length > 0
+      ? randomArrayItem(instanceList)
+      : ''
+
+    commit('setCurrentInvidiousInstance', instance)
+    return instance
+  },
+
+  setNextCurrentInvidiousInstance({ commit, state }, failedInstance) {
+    const instanceList = Array.isArray(state.invidiousInstancesList)
+      ? state.invidiousInstancesList
+      : []
+    const alternatives = instanceList.filter(instance => instance !== failedInstance)
+    const instance = alternatives.length > 0 ? randomArrayItem(alternatives) : ''
+
+    if (instance !== '') {
+      commit('setCurrentInvidiousInstance', instance)
+    }
+    return instance
   }
 }
 

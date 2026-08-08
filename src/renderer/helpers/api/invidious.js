@@ -1,6 +1,7 @@
 import store from '../../store/index'
-import { calculatePublishedDate, getRelativeTimeFromDate } from '../utils'
+import { calculatePublishedDate, fetchWithTimeout, getRelativeTimeFromDate } from '../utils'
 import { isNullOrEmpty } from '../strings'
+import { fetchThroughAegisProxy } from '../aegisBridge'
 import autolinker from 'autolinker'
 import { FormatUtils, Misc, Player } from 'youtubei.js'
 
@@ -36,44 +37,100 @@ export function getProxyUrl(uri) {
 /**
  * @param {string | URL} url
  */
-export function invidiousFetch(url) {
+export async function invidiousFetch(url) {
   const authorization = store.getters.getCurrentInvidiousInstanceAuthorization
-
-  if (authorization) {
-    return fetch(url, {
-      headers: {
-        Authorization: authorization
+  const requestInit = authorization
+    ? {
+        headers: {
+          Authorization: authorization
+        }
       }
-    })
-  } else {
-    return fetch(url)
+    : undefined
+
+  const publicInstances = store.getters.getInvidiousInstancesList
+  const requestOrigin = new URL(url).origin
+  const usesPublicInstance = Array.isArray(publicInstances) && publicInstances.some(instance => {
+    try {
+      return new URL(instance).origin === requestOrigin
+    } catch {
+      return false
+    }
+  })
+
+  if (process.env.AEGISOS_WEB_EDITION) {
+    if (!authorization && usesPublicInstance) {
+      const proxiedResponse = await fetchThroughAegisProxy(url)
+      if (proxiedResponse) {
+        const servingInstance = proxiedResponse.headers.get('x-aegisos-invidious-instance')
+        if (servingInstance) {
+          store.commit('setCurrentInvidiousInstance', servingInstance)
+        }
+        return proxiedResponse
+      }
+    }
+    return fetchWithTimeout(12_000, url, requestInit)
   }
+
+  return fetch(url, requestInit)
 }
 
-function invidiousAPICall({ resource, id = '', params = {}, doLogError = true, subResource = '' }) {
-  return new Promise((resolve, reject) => {
-    const requestUrl = getCurrentInstanceUrl() + '/api/v1/' + resource + '/' + id + (!isNullOrEmpty(subResource) ? `/${subResource}` : '') + '?' + new URLSearchParams(params).toString()
-    invidiousFetch(requestUrl)
-      .then((response) => response.json())
-      .then((json) => {
-        if (json.error !== undefined) {
-          // community is empty, no need to display error.
-          // This code can be removed when: https://github.com/iv-org/invidious/issues/3814 is reolved
-          if (json.error === 'This channel hasn\'t posted yet') {
-            resolve({ comments: [] })
-          } else {
-            throw new Error(json.error)
-          }
-        }
-        resolve(json)
-      })
-      .catch((error) => {
-        if (doLogError) {
-          console.error('Invidious API error', requestUrl, error)
-        }
-        reject(error)
-      })
-  })
+function createInvidiousRequestUrl(instance, { resource, id, params, subResource }) {
+  return instance + '/api/v1/' + resource + '/' + id +
+    (!isNullOrEmpty(subResource) ? `/${subResource}` : '') +
+    '?' + new URLSearchParams(params).toString()
+}
+
+async function fetchInvidiousJson(requestUrl) {
+  const response = await invidiousFetch(requestUrl)
+  if (!response.ok) {
+    throw new Error(`Invidious returned HTTP ${response.status}`)
+  }
+
+  const json = await response.json()
+  if (json.error !== undefined) {
+    // Community is empty, no need to display an error.
+    // This code can be removed when https://github.com/iv-org/invidious/issues/3814 is resolved.
+    if (json.error === 'This channel hasn\'t posted yet') {
+      return { comments: [] }
+    }
+    throw new Error(json.error)
+  }
+
+  return json
+}
+
+async function invidiousAPICall(
+  { resource, id = '', params = {}, doLogError = true, subResource = '' },
+  retryAvailable = true
+) {
+  const failedInstance = getCurrentInstanceUrl()
+  let requestUrl = ''
+
+  try {
+    if (failedInstance === '') {
+      throw new Error('No public Invidious instance is available')
+    }
+
+    requestUrl = createInvidiousRequestUrl(failedInstance, { resource, id, params, subResource })
+    return await fetchInvidiousJson(requestUrl)
+  } catch (error) {
+    if (process.env.AEGISOS_WEB_EDITION && retryAvailable) {
+      await store.dispatch('fetchInvidiousInstances')
+      const replacement = await store.dispatch('setNextCurrentInvidiousInstance', failedInstance)
+
+      if (replacement !== '') {
+        return await invidiousAPICall(
+          { resource, id, params, doLogError, subResource },
+          false
+        )
+      }
+    }
+
+    if (doLogError) {
+      console.error('Invidious API error', requestUrl || failedInstance, error)
+    }
+    throw error
+  }
 }
 
 async function resolveUrl(url) {
