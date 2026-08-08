@@ -26,8 +26,9 @@ It is not an official FreeTube release or service.
 - Resolve the live CORS-capable Invidious pool before mounting the first route,
   time out stalled requests, and retry once with a refreshed instance.
 - When embedded by the installed AegisOS shell, use its versioned
-  `postMessage` bridge for narrowly scoped `/api/v1/...` JSON requests; retain
-  ordinary browser fetching as the hosted web fallback.
+  `postMessage` bridge for narrowly scoped `/api/v1/...` JSON requests and
+  constrain instance selection to the origins advertised by that relay;
+  retain ordinary browser fetching as the hosted web fallback.
 - Rewrite insecure internal Invidious thumbnail origins back to the selected
   instance's HTTPS public origin.
 

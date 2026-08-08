@@ -1,7 +1,7 @@
 const CHANNEL = 'aegisos:freetube:v1'
 const pending = new Map()
 let listenerInstalled = false
-let availabilityPromise = null
+let proxyConfigPromise = null
 let parentOrigin = null
 
 const NATIVE_PARENT_ORIGINS = new Set([
@@ -72,14 +72,37 @@ function sendToParent(type, responseType, payload, timeoutMs) {
   })
 }
 
-async function hasNativeProxy() {
-  if (window.parent === window) return false
-  if (!availabilityPromise) {
-    availabilityPromise = sendToParent('probe', 'probe-result', {}, 900)
-      .then(message => message.available === true)
-      .catch(() => false)
+async function getNativeProxyConfig() {
+  if (window.parent === window) return null
+  if (!proxyConfigPromise) {
+    proxyConfigPromise = sendToParent('probe', 'probe-result', {}, 1_500)
+      .then(message => {
+        if (message.available !== true || !Array.isArray(message.origins)) return null
+        const origins = message.origins.filter(origin => {
+          if (typeof origin !== 'string') return false
+          try {
+            const url = new URL(origin)
+            return url.protocol === 'https:' && url.origin === origin
+          } catch {
+            return false
+          }
+        })
+        return { origins }
+      })
+      .catch(() => null)
   }
-  return await availabilityPromise
+  const config = await proxyConfigPromise
+  if (config === null) proxyConfigPromise = null
+  return config
+}
+
+/**
+ * Return the installed relay's approved origins, or null outside AegisOS.
+ * @returns {Promise<string[] | null>}
+ */
+export async function getAegisProxyOrigins() {
+  const config = await getNativeProxyConfig()
+  return config === null ? null : config.origins
 }
 
 /**
@@ -90,11 +113,14 @@ async function hasNativeProxy() {
  * @returns {Promise<Response | null>}
  */
 export async function fetchThroughAegisProxy(input) {
-  if (!(await hasNativeProxy())) return null
-
   const url = new URL(input)
   if (!url.pathname.startsWith('/api/v1/')) {
     return null
+  }
+  const approvedOrigins = await getAegisProxyOrigins()
+  if (approvedOrigins === null) return null
+  if (!approvedOrigins.includes(url.origin)) {
+    throw new Error('FreeTube selected a video service that the installed AegisOS relay does not approve')
   }
 
   const message = await sendToParent(

@@ -1,4 +1,5 @@
 import { base64EncodeUtf8, createWebURL, fetchWithTimeout, randomArrayItem } from '../../helpers/utils'
+import { getAegisProxyOrigins } from '../../helpers/aegisBridge'
 
 const state = {
   currentInvidiousInstance: '',
@@ -28,10 +29,15 @@ const getters = {
 const actions = {
   async fetchInvidiousInstancesFromFile({ commit }) {
     const url = createWebURL('/static/invidious-instances.json')
+    const proxyOrigins = process.env.AEGISOS_WEB_EDITION
+      ? await getAegisProxyOrigins()
+      : null
 
     const fileData = await (await fetch(url)).json()
     const instances = fileData.filter(e => {
-      return process.env.SUPPORTS_LOCAL_API || e.cors
+      const origin = e.url.replace(/\/$/, '')
+      return (process.env.SUPPORTS_LOCAL_API || e.cors) &&
+        (proxyOrigins === null || proxyOrigins.includes(origin))
     }).map(e => {
       return e.url
     })
@@ -43,6 +49,9 @@ const actions = {
   async fetchInvidiousInstances({ commit }) {
     const requestUrl = 'https://api.invidious.io/instances.json'
     const timeout = process.env.AEGISOS_WEB_EDITION ? 6_000 : 15_000
+    const proxyOrigins = process.env.AEGISOS_WEB_EDITION
+      ? await getAegisProxyOrigins()
+      : null
     try {
       const response = await fetchWithTimeout(timeout, requestUrl)
       if (!response.ok) {
@@ -56,6 +65,8 @@ const actions = {
           (!process.env.SUPPORTS_LOCAL_API && !instance[1].cors))
       }).map((instance) => {
         return instance[1].uri.replace(/\/$/, '')
+      }).filter((origin) => {
+        return proxyOrigins === null || proxyOrigins.includes(origin)
       })
 
       if (instances.length !== 0) {
