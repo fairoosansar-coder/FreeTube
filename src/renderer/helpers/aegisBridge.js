@@ -1,5 +1,6 @@
 const CHANNEL = 'aegisos:freetube:v1'
-const BRIDGE_VERSION = 'v2'
+const SUPPORTED_BRIDGE_VERSIONS = new Set(['v2', 'v3'])
+const LOCAL_EXTRACTOR_BRIDGE_VERSION = 'v3'
 const OPAQUE_ORIGIN = 'null'
 const pending = new Map()
 let listenerInstalled = false
@@ -13,10 +14,22 @@ const bridgeParams = bridgeHashQuery === -1
   : new URLSearchParams(window.location.hash.slice(bridgeHashQuery + 1))
 const requestedBridgeVersion = bridgeParams.get('aegisBridge')
 const bridgeToken = bridgeParams.get('aegisBridgeToken')
-const expectsNativeBridge = requestedBridgeVersion === BRIDGE_VERSION &&
+const expectsNativeBridge = SUPPORTED_BRIDGE_VERSIONS.has(requestedBridgeVersion) &&
   typeof bridgeToken === 'string' &&
   bridgeToken.length >= 16 &&
   bridgeToken.length <= 128
+
+export function isAegisNativeBridgeExpected() {
+  return expectsNativeBridge
+}
+
+/**
+ * Bridge v2 remains supported for older installed shells and their Invidious
+ * relay. Only v3 advertises the native JSON transport required by youtubei.js.
+ */
+export function isAegisNativeExtractorExpected() {
+  return expectsNativeBridge && requestedBridgeVersion === LOCAL_EXTRACTOR_BRIDGE_VERSION
+}
 
 const NATIVE_PARENT_ORIGINS = new Set([
   'tauri://localhost',
@@ -194,6 +207,63 @@ export async function fetchThroughAegisProxy(input) {
       'x-aegisos-invidious-instance': typeof message.instance === 'string'
         ? message.instance
         : ''
+    }
+  })
+}
+
+/**
+ * Route FreeTube's unauthenticated Innertube JSON POSTs through the installed
+ * AegisOS shell. The native side independently enforces the exact YouTube
+ * origin, path family, method, headers, and body/response limits.
+ *
+ * @param {RequestInfo | URL} input
+ * @param {RequestInit} [init]
+ * @returns {Promise<Response | null>}
+ */
+export async function fetchThroughAegisInnertube(input, init = undefined) {
+  if (!isAegisNativeExtractorExpected()) {
+    return null
+  }
+
+  const request = new Request(input, init)
+  const url = new URL(request.url)
+  if (url.origin !== 'https://www.youtube.com' || !url.pathname.startsWith('/youtubei/v1/')) {
+    return null
+  }
+  if (request.method !== 'POST') {
+    if (expectsNativeBridge) {
+      throw new Error('AegisOS supports only YouTube Innertube JSON POST requests')
+    }
+    return null
+  }
+
+  const config = await getNativeProxyConfig()
+  if (config === null) {
+    if (expectsNativeBridge) {
+      throw new Error('AegisOS native YouTube bridge did not answer. Reload FreeTube to reconnect it.')
+    }
+    return null
+  }
+
+  const body = await request.clone().text()
+  const headers = Object.fromEntries(request.headers.entries())
+  const message = await sendToParent(
+    'youtube-request',
+    'response',
+    { url: request.url, method: request.method, headers, body },
+    30_000
+  )
+
+  if (message.ok !== true || typeof message.body !== 'string') {
+    throw new Error(typeof message.error === 'string' ? message.error : 'AegisOS native YouTube request failed')
+  }
+
+  return new Response(message.body, {
+    status: Number.isInteger(message.status) ? message.status : 200,
+    headers: {
+      'content-type': typeof message.contentType === 'string'
+        ? message.contentType
+        : 'application/json'
     }
   })
 }

@@ -130,6 +130,7 @@ import packageDetails from '../../package.json'
 import { openExternalLink, openInternalPath, showToast } from './helpers/utils'
 import { translateWindowTitle } from './helpers/strings'
 import { loadLocale } from './i18n/index'
+import { isAegisNativeExtractorExpected } from './helpers/aegisBridge'
 
 const route = useRoute()
 const router = useRouter()
@@ -169,13 +170,19 @@ const dataReady = ref(false)
 onMounted(async () => {
   await store.dispatch('grabUserSettings')
 
+  if (process.env.AEGISOS_WEB_EDITION && isAegisNativeExtractorExpected()) {
+    // Native extraction is the reliable playback path. Override an older
+    // saved Invidious-only preference when the authenticated shell is present.
+    store.commit('setBackendPreference', 'local')
+    store.commit('setBackendFallback', true)
+  }
+
   updateTheme()
 
   await store.dispatch('fetchInvidiousInstancesFromFile')
 
-  // The web edition cannot use FreeTube's local extractor. Resolve the live
-  // CORS-capable Invidious pool before mounting a route so the first request
-  // does not race a stale bundled instance list.
+  // Invidious still supplies the lightweight popular feed and remains the
+  // standalone web fallback, so resolve it before mounting the first route.
   if (process.env.AEGISOS_WEB_EDITION) {
     await store.dispatch('fetchInvidiousInstances')
   }

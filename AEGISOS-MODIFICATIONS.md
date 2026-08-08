@@ -29,18 +29,30 @@ It is not an official FreeTube release or service.
   `postMessage` bridge for narrowly scoped `/api/v1/...` JSON requests and
   constrain instance selection to the origins advertised by that relay;
   retain ordinary browser fetching as the hosted web fallback.
+- In the authenticated AegisOS frame, use FreeTube's bundled `youtubei.js`
+  extractor for video metadata and playback instead of relying on a public
+  Invidious `/videos/...` response. Route only the extractor's tightly scoped,
+  unauthenticated YouTube JSON requests through the native shell.
+- Accept only a validated combined MP4 from the extractor for this first
+  native-playback release. Play it through WebKit's native media path without
+  a CORS attribute, and suppress screenshots because no-CORS media correctly
+  taints browser canvases.
 - Authenticate each native frame with a short-lived bridge token kept in the
   URL fragment (and therefore out of server logs), tolerate WebKit's opaque
   custom-protocol parent origin, retry the startup handshake, and report a
   bridge failure instead of silently attempting a blocked fetch.
+- Keep the v2 Invidious bridge compatible with older installed shells while
+  gating the new local extractor on bridge v3, so a hosted-page deployment
+  cannot silently break users who have not updated AegisOS yet.
 - Reconcile persisted/default Invidious settings against the relay-advertised
   origins at startup so an obsolete saved server cannot bypass the relay.
 - Publish content-hashed JavaScript bundles so an upgraded AegisOS frame never
   reuses an older bridge client from the browser cache.
-- Rewrite insecure internal Invidious thumbnail origins back to the selected
-  instance's HTTPS public origin.
+- Rewrite Invidious video-thumbnail paths to YouTube's canonical HTTPS image
+  host instead of an instance's internal or intermittently broken proxy.
 
-The browser build uses FreeTube's Invidious backend mode. It does not contain
-the Electron desktop runtime or FreeTube's local extractor.
+The standalone browser page defaults to FreeTube's Invidious backend. The
+authenticated AegisOS embed switches to the bundled local extractor; it does
+not contain the Electron desktop runtime.
 
 See [SOURCE.md](SOURCE.md) for reproducible build and source-access details.

@@ -1029,8 +1029,9 @@ function normalizeOneInvidiousVideoAttributes(video, fallbackAuthorId = null) {
 }
 
 /**
- * Some public instances advertise an internal or insecure thumbnail origin.
- * Keep known Invidious image paths on the selected HTTPS instance.
+ * Some public instances advertise internal or insecure thumbnail origins.
+ * Video thumbnails are public YouTube assets, so use the canonical HTTPS host
+ * instead of depending on an instance's intermittently broken image proxy.
  * @param {string} value
  * @returns {string}
  */
@@ -1038,7 +1039,10 @@ function normalizeInvidiousThumbnailUrl(value) {
   try {
     const instance = new URL(getCurrentInstanceUrl())
     const thumbnail = new URL(value, instance)
-    if (thumbnail.pathname.startsWith('/vi/') || thumbnail.pathname.startsWith('/ggpht/')) {
+    if (thumbnail.pathname.startsWith('/vi/')) {
+      thumbnail.protocol = 'https:'
+      thumbnail.host = 'i.ytimg.com'
+    } else if (thumbnail.pathname.startsWith('/ggpht/')) {
       thumbnail.protocol = instance.protocol
       thumbnail.host = instance.host
     }

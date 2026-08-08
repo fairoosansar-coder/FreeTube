@@ -161,7 +161,9 @@ const state = {
   autoplayPlaylists: true,
   autoplayVideos: true,
   backendFallback: false,
-  backendPreference: !process.env.SUPPORTS_LOCAL_API ? 'invidious' : 'local',
+  // The standalone hosted page remains on Invidious. The authenticated
+  // AegisOS frame switches to the bundled local extractor during startup.
+  backendPreference: !process.env.SUPPORTS_LOCAL_API || process.env.AEGISOS_WEB_EDITION ? 'invidious' : 'local',
   barColor: false,
   // Modified defaults for the AegisOS web edition. Existing user choices in
   // IndexedDB still win after the first launch.

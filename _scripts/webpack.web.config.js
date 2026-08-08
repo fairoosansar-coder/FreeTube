@@ -39,7 +39,6 @@ const config = {
     clean: true,
   },
   externals: {
-    'youtubei.js': '{}',
     googlevideo: '{}'
   },
   module: {
@@ -142,7 +141,7 @@ const config = {
       'process.platform': 'undefined',
       'process.env.IS_ELECTRON': false,
       'process.env.IS_ELECTRON_MAIN': false,
-      'process.env.SUPPORTS_LOCAL_API': false,
+      'process.env.SUPPORTS_LOCAL_API': true,
       'process.env.AEGISOS_WEB_EDITION': true,
       'process.env.AEGISOS_FORK_COMMIT': JSON.stringify(aegisForkCommit),
       __VUE_OPTIONS_API__: 'true',
@@ -182,6 +181,8 @@ const config = {
   resolve: {
     alias: {
       DB_HANDLERS_ELECTRON_RENDERER_OR_WEB$: path.resolve(__dirname, '../src/datastores/handlers/web.js'),
+
+      'youtubei.js$': 'youtubei.js/web',
 
       // change to "shaka-player.ui-es2021.debug.js" to get debug logs (update jsconfig to get updated types)
       'shaka-player$': 'shaka-player/dist/shaka-player.ui-es2021.js',
