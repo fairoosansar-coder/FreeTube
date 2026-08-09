@@ -3,48 +3,14 @@
     class="aegisTubeBrand"
     :class="{ hero }"
     role="img"
-    :aria-label="brandLabel"
+    :aria-label="showAttribution ? 'AegisTube, powered by FreeTube' : 'AegisTube'"
   >
-    <svg
+    <img
       class="brandMark"
-      viewBox="0 0 64 64"
+      :src="aegisTubeMark"
+      alt=""
       aria-hidden="true"
     >
-      <circle
-        cx="32"
-        cy="32"
-        r="28"
-        class="orbit"
-      />
-      <circle
-        cx="32"
-        cy="32"
-        r="4"
-        class="core"
-      />
-      <path
-        d="M32 10 13 51l11-6 8-18 8 18 11 6Z"
-        class="aMark"
-      />
-      <circle
-        cx="32"
-        cy="4"
-        r="3"
-        class="node goldNode"
-      />
-      <circle
-        cx="5"
-        cy="39"
-        r="3"
-        class="node"
-      />
-      <circle
-        cx="59"
-        cy="39"
-        r="3"
-        class="node"
-      />
-    </svg>
     <span class="brandCopy">
       <span class="wordmark"><strong>{{ brandPrefix }}</strong><strong class="tube">{{ brandSuffix }}</strong></span>
       <span
@@ -56,7 +22,8 @@
 </template>
 
 <script setup>
-const brandLabel = 'AegisTube, powered by FreeTube'
+import aegisTubeMark from '../../assets/img/aegistube-mark.svg'
+
 const brandPrefix = 'Aegis'
 const brandSuffix = 'Tube'
 const attributionLabel = 'Powered by FreeTube'

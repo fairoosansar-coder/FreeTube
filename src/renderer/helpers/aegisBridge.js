@@ -34,11 +34,17 @@ export function isAegisNativeExtractorExpected() {
 const NATIVE_PARENT_ORIGINS = new Set([
   'tauri://localhost',
   'http://tauri.localhost',
-  'https://tauri.localhost'
+  'https://tauri.localhost',
+  // Tauri's development window uses this exact Vite origin while embedding
+  // the same production AegisTube payload as a release build. It is accepted
+  // only when the frame also carries the short-lived AegisOS bridge token.
+  'http://localhost:3000'
 ])
 
 function isAllowedParentOrigin(origin) {
-  if (NATIVE_PARENT_ORIGINS.has(origin)) return true
+  if (NATIVE_PARENT_ORIGINS.has(origin)) {
+    return origin !== 'http://localhost:3000' || expectsNativeBridge
+  }
   // WKWebView can serialize a non-HTTP custom-protocol parent as an opaque
   // origin. The per-frame token and exact event.source check authenticate that
   // parent without granting trust to unrelated opaque frames.
@@ -266,4 +272,35 @@ export async function fetchThroughAegisInnertube(input, init = undefined) {
         : 'application/json'
     }
   })
+}
+
+/**
+ * Keep links opened by the embedded client inside the AegisOS Browser app.
+ * Returns false for the optional hosted edition, where normal browser tabs
+ * remain appropriate.
+ *
+ * @param {string} input
+ * @returns {Promise<boolean>}
+ */
+export async function openLinkThroughAegisShell(input) {
+  if (!expectsNativeBridge) return false
+  if (typeof input !== 'string' || input.length === 0 || input.length > 2048) {
+    throw new Error('AegisTube blocked an invalid link')
+  }
+
+  const url = new URL(input)
+  if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password) {
+    throw new Error('AegisTube permits only safe web links')
+  }
+
+  const message = await sendToParent(
+    'open-link',
+    'open-link-result',
+    { url: url.toString() },
+    5_000
+  )
+  if (message.ok !== true) {
+    throw new Error(typeof message.error === 'string' ? message.error : 'AegisOS could not open this link')
+  }
+  return true
 }

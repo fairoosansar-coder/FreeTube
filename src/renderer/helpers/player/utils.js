@@ -28,7 +28,7 @@ export function logShakaError(error, context, videoId, details) {
   const message =
     'Player Error (category and code explainations here: https://shaka-player-demo.appspot.com/docs/api/shaka.util.Error.html)\n' +
     `Video ID: "${videoId}"\n` +
-    `FreeTube player context: "${context}"\n\n` +
+    `AegisTube player context: "${context}"\n\n` +
     `Severity: ${severityText} (${error.severity})\n` +
     `Category: ${categoryText} (${error.category})\n` +
     `Code: ${codeText} (${error.code})\n` +
@@ -46,7 +46,7 @@ export function logShakaError(error, context, videoId, details) {
 
   if (details) {
     args.push(
-      '\n\nFreeTube data:',
+      '\n\nAegisTube data:',
       // use deepCopy to get rid of Vue's proxying,
       // as that requires you click the 3 dots for every property in the logged object to see their values
       // doing it like this, results in a "clean" object where everything is immediately visible

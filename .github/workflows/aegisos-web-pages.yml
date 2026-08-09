@@ -1,4 +1,4 @@
-name: Deploy AegisOS FreeTube Web
+name: Deploy AegisTube Web
 
 on:
   push:
@@ -11,7 +11,7 @@ permissions:
   id-token: write
 
 concurrency:
-  group: aegisos-freetube-web-pages
+  group: aegistube-web-pages
   cancel-in-progress: true
 
 jobs:
@@ -43,7 +43,7 @@ jobs:
           npm install --global --prefix "${RUNNER_TEMP}/pnpm" pnpm@10.34.5
           echo "${RUNNER_TEMP}/pnpm/bin" >> "${GITHUB_PATH}"
 
-      - name: Build isolated web edition and corresponding source
+      - name: Build AegisTube Web and corresponding source
         working-directory: source
         env:
           AEGISOS_PUBLIC_PATH: /FreeTube/
@@ -52,8 +52,8 @@ jobs:
           pnpm run pack:web
           mkdir -p dist/web/source
           git archive --format=tar.gz \
-            --prefix="aegisos-freetube-web-${GITHUB_SHA}/" \
-            -o "dist/web/source/aegisos-freetube-web-${GITHUB_SHA}.tar.gz" \
+            --prefix="aegistube-web-${GITHUB_SHA}/" \
+            -o "dist/web/source/aegistube-web-${GITHUB_SHA}.tar.gz" \
             "${GITHUB_SHA}"
           cp LICENSE AEGISOS-MODIFICATIONS.md SOURCE.md THIRD_PARTY_NOTICES.md dist/web/
           pnpm licenses list --json > dist/web/THIRD_PARTY_LICENSES.json
@@ -68,7 +68,7 @@ jobs:
           grep -Eq 'src="/FreeTube/web\.[^"]+\.js"' dist/web/index.html
           grep -Fq 'n.p="/FreeTube/"' "${web_bundle}"
           node -e "const i=require('./dist/web/build-info.json'); if(i.revision!==process.env.GITHUB_SHA || i.source!=='https://github.com/fairoosansar-coder/FreeTube/tree/'+process.env.GITHUB_SHA) process.exit(1)"
-          test -s "dist/web/source/aegisos-freetube-web-${GITHUB_SHA}.tar.gz"
+          test -s "dist/web/source/aegistube-web-${GITHUB_SHA}.tar.gz"
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5

@@ -3,47 +3,30 @@ import { createWebURL } from '../helpers/utils'
 // List of locales approved for use
 import activeLocales from '../../../static/locales/activeLocales.json'
 
-// These messages describe the running application, rather than the upstream
-// project, its data format, documentation, or credits. Keep the locale keys
-// stable for FreeTube compatibility and brand only their values in AegisOS.
-const AEGISTUBE_MESSAGE_PATHS = [
-  ['Settings', 'General Settings', 'Open Deep Links In New Window'],
-  ['Settings', 'Theme Settings', 'Hide FreeTube Header Logo'],
-  ['Settings', 'Proxy Settings', 'Proxy Warning'],
-  ['Channel', 'This channel is age-restricted and currently cannot be viewed in FreeTube.'],
-  ['Channel', 'Posts', 'Video hidden by FreeTube'],
-  ['Video', 'MembersOnly'],
-  ['Video', 'AgeRestricted'],
-  ['Video', 'DRMProtected'],
-  ['Video', 'Private'],
-  ['Tooltips', 'General Settings', 'Preferred API Backend'],
-  ['Tooltips', 'General Settings', 'Fallback to Non-Preferred Backend on Failure'],
-  ['Tooltips', 'General Settings', 'Thumbnail Preference'],
-  ['Tooltips', 'General Settings', 'Invidious Instance'],
-  ['Tooltips', 'General Settings', 'External Link Handling'],
-  ['Tooltips', 'General Settings', 'Open Deep Links In New Window'],
-  ['Tooltips', 'External Player Settings', 'Custom External Player Executable'],
-  ['Tooltips', 'Distraction Free Settings', 'Hide Videos, Playlists and Channels Containing Text'],
-  ['Tooltips', 'Subscription Settings', 'Fetch Feeds from RSS'],
-  ['Tooltips', 'Subscription Settings', 'Fetch Automatically'],
-]
+// Keep the upstream locale keys stable for import and merge compatibility,
+// while presenting this derivative application consistently as AegisTube.
+// Upstream identity, source, credits, and license remain explicit in About.
 const LOCALIZED_FREETUBE_NAME = /free\s*tube|ஃப்ரீட்யூப்|فری\s*ٹیوب/giu
 
-function applyAegisTubeProductName(messages) {
-  if (!process.env.AEGISOS_WEB_EDITION) return messages
-
-  for (const path of AEGISTUBE_MESSAGE_PATHS) {
-    let parent = messages
-    for (const segment of path.slice(0, -1)) {
-      parent = parent?.[segment]
-      if (!parent || typeof parent !== 'object') break
-    }
-    const key = path[path.length - 1]
-    if (parent && key && typeof parent[key] === 'string') {
-      parent[key] = parent[key].replaceAll(LOCALIZED_FREETUBE_NAME, 'AegisTube')
+function rebrandMessageTree(value) {
+  if (typeof value === 'string') {
+    return value.replaceAll(LOCALIZED_FREETUBE_NAME, 'AegisTube')
+  }
+  if (Array.isArray(value)) {
+    return value.map(rebrandMessageTree)
+  }
+  if (value && typeof value === 'object') {
+    for (const [key, child] of Object.entries(value)) {
+      value[key] = rebrandMessageTree(child)
     }
   }
-  return messages
+  return value
+}
+
+function applyAegisTubeProductName(messages) {
+  return process.env.AEGISTUBE_EDITION
+    ? rebrandMessageTree(messages)
+    : messages
 }
 
 const i18n = createI18n({

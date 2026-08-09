@@ -205,19 +205,24 @@ onMounted(async () => {
     store.dispatch('grabAllSubscriptions')
     store.dispatch('grabSearchHistoryEntries')
 
-    if (process.env.IS_ELECTRON) {
-      store.dispatch('setupListenersToSyncWindows')
+    if (process.env.IS_ELECTRON || process.env.AEGISOS_WEB_EDITION) {
       document.addEventListener('click', handleClick)
       document.addEventListener('auxclick', handleAuxClick)
+    }
+
+    if (process.env.IS_ELECTRON) {
+      store.dispatch('setupListenersToSyncWindows')
       enableOpenUrl()
       store.dispatch('getExternalPlayerCmdArgumentsData')
     }
 
     dataReady.value = true
 
-    setTimeout(() => {
-      checkForNewUpdates()
-    }, 500)
+    if (!process.env.AEGISOS_WEB_EDITION) {
+      setTimeout(() => {
+        checkForNewUpdates()
+      }, 500)
+    }
   })
 
   if (route.path === '/') {
@@ -386,19 +391,36 @@ function handleExternalLinkOpeningPromptAnswer(option) {
 }
 
 /**
+ * Resolve link clicks from the anchor or any nested image/text element.
  * @param {PointerEvent} event
+ * @returns {HTMLAnchorElement | null}
  */
-function isExternalLink(event) {
-  return event.target.tagName === 'A' && !event.target.href.startsWith(window.location.origin)
+function getExternalLinkAnchor(event) {
+  const anchor = event.target instanceof Element
+    ? event.target.closest('a[href]')
+    : null
+  if (!(anchor instanceof HTMLAnchorElement)) return null
+
+  try {
+    const url = new URL(anchor.href, window.location.href)
+    const isSpaRoute = url.origin === window.location.origin &&
+      url.pathname === window.location.pathname &&
+      url.search === window.location.search &&
+      url.hash.startsWith('#/')
+    return isSpaRoute
+      ? null
+      : anchor
+  } catch {
+    return anchor
+  }
 }
 
 /**
  * @param {PointerEvent} event
  */
 function handleClick(event) {
-  if (isExternalLink(event)) {
-    handleLinkClick(event)
-  }
+  const anchor = getExternalLinkAnchor(event)
+  if (anchor) handleLinkClick(event, anchor)
 }
 
 /**
@@ -408,16 +430,16 @@ function handleAuxClick(event) {
   // auxclick fires for all clicks not performed with the primary button
   // only handle the link click if it was the middle button,
   // otherwise the context menu breaks
-  if (isExternalLink(event) && event.button === 1) {
-    handleLinkClick(event)
-  }
+  const anchor = getExternalLinkAnchor(event)
+  if (anchor && event.button === 1) handleLinkClick(event, anchor)
 }
 
 /**
  * @param {PointerEvent} event
+ * @param {HTMLAnchorElement} anchor
  */
-function handleLinkClick(event) {
-  const href = event.target.href
+function handleLinkClick(event, anchor) {
+  const href = anchor.href
   event.preventDefault()
 
   // Check if it's a YouTube link, but exclude live chat pop out

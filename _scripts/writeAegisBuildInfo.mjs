@@ -1,4 +1,4 @@
-// Added 2026-08-06 for the AegisOS web edition.
+// Added 2026-08-06 for the hosted AegisTube web edition.
 import crypto from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
@@ -9,7 +9,7 @@ if (!revision || !/^[a-f0-9]{40}$/.test(revision)) {
 }
 
 const outputDir = path.resolve('dist/web')
-const archiveName = `aegisos-freetube-web-${revision}.tar.gz`
+const archiveName = `aegistube-web-${revision}.tar.gz`
 const archivePath = path.join(outputDir, 'source', archiveName)
 const archive = fs.readFileSync(archivePath)
 const sha256 = crypto.createHash('sha256').update(archive).digest('hex')

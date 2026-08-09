@@ -2,6 +2,7 @@ import { nextTick } from 'vue'
 import i18n from '../i18n/index'
 import router from '../router/index'
 import { UnsupportedPlayerActions } from '../../constants'
+import { openLinkThroughAegisShell } from './aegisBridge'
 
 // allowed characters in channel handle: A-Z, a-z, 0-9, -, _, .
 // https://support.google.com/youtube/answer/11585688#change_handle
@@ -262,6 +263,12 @@ export async function copyToClipboard(content, { messageOnSuccess = null, messag
  * @param {string} url the URL to open
  */
 export async function openExternalLink(url) {
+  try {
+    if (await openLinkThroughAegisShell(url)) return
+  } catch (error) {
+    showToast(error instanceof Error ? error.message : String(error), 5000)
+    return
+  }
   window.open(url, '_blank', 'noreferrer')
 }
 

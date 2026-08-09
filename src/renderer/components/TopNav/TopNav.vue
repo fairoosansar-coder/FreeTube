@@ -62,8 +62,7 @@
         :to="landingPage"
       >
         <AegisTubeBrand
-          v-if="isAegisWeb"
-          show-attribution
+          v-if="isAegisTube"
         />
         <template v-else>
           <div
@@ -139,7 +138,7 @@ import { clearLocalSearchSuggestionsSession, getLocalSearchSuggestions } from '.
 import { getInvidiousSearchSuggestions } from '../../helpers/api/invidious'
 
 const { t } = useI18n()
-const isAegisWeb = process.env.AEGISOS_WEB_EDITION === true
+const isAegisTube = process.env.AEGISTUBE_EDITION === true
 const privateWebLabel = 'Private web'
 const privateWebTitle = 'Private web mode uses an Invidious instance and stores your library locally'
 const router = useRouter()

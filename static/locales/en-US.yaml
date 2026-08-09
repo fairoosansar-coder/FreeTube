@@ -1114,7 +1114,7 @@ Local API Error (Click to copy): Local API Error (Click to copy)
 Invidious API Error (Click to copy): Invidious API Error (Click to copy)
 Public video service unavailable: Public video service unavailable
 AegisTube unavailable help: AegisTube depends on a public Invidious service. Try again, or use
-  Desktop fallback in the AegisOS toolbar.
+  search and playback through the AegisOS native relay.
 Try again: Try again
 Falling back to Invidious API: Falling back to Invidious API
 Falling back to Local API: Falling back to Local API

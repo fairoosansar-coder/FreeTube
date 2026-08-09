@@ -7,11 +7,11 @@
           :icon="['fas', 'info-circle']"
           class="headingIcon"
         />
-        {{ $t("About.About") }}
+        {{ aboutTitle }}
       </h2>
       <section class="brand">
         <AegisTubeBrand
-          v-if="isAegisWeb"
+          v-if="isAegisTube"
           hero
           show-attribution
         />
@@ -52,52 +52,76 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import FtCard from '../../components/ft-card/ft-card.vue'
-import FtLogoFull from '../../components/FtLogoFull/FtLogoFull.vue'
 import AegisTubeBrand from '../../components/AegisTubeBrand/AegisTubeBrand.vue'
+import FtLogoFull from '../../components/FtLogoFull/FtLogoFull.vue'
 import { vSaferHtml } from '../../directives/vSaferHtml.js'
 
 import packageDetails from '../../../../package.json'
 
 const { t } = useI18n()
 
+const isAegisTube = process.env.AEGISTUBE_EDITION === true
 const isAegisWeb = process.env.AEGISOS_WEB_EDITION === true
+const aboutTitle = isAegisTube ? 'About AegisTube' : t('About.About')
 const versionNumber = `v${packageDetails.version}`
-const editionLabel = isAegisWeb
-  ? '· AegisOS web edition'
-  : ''
+const editionLabel = isAegisWeb ? '· AegisOS shell app' : ''
 const forkCommit = process.env.AEGISOS_FORK_COMMIT || 'development'
 const forkRevision = forkCommit === 'development'
-  ? forkCommit
+  ? 'development branch'
   : forkCommit.slice(0, 7)
 const forkBase = 'https://github.com/fairoosansar-coder/FreeTube'
-const forkSourceUrl = `${forkBase}/tree/${forkCommit}`
-const forkArchiveUrl = `${forkBase}/archive/${forkCommit}.tar.gz`
-const deployedArchiveUrl = forkCommit === 'development'
-  ? forkArchiveUrl
+const forkSourceUrl = forkCommit === 'development'
+  ? `${forkBase}/tree/aegisos-web-v0.25.1`
+  : `${forkBase}/tree/${forkCommit}`
+const deployedArchiveUrl = !isAegisWeb || forkCommit === 'development'
+  ? null
   : new URL(
-      `source/aegisos-freetube-web-${forkCommit}.tar.gz`,
+      `source/aegistube-web-${forkCommit}.tar.gz`,
       window.location.href.split('#')[0]
     ).toString()
 
-const chunks = computed(() => [
-  ...(isAegisWeb
-    ? [{
-        icon: ['fas', 'info-circle'],
-        title: 'AegisTube · powered by FreeTube',
-        content: [
-          'AegisTube is the AegisOS video client, powered by an unofficial modified FreeTube web edition.',
-          'It is not an official FreeTube release or service.',
-          'Inside AegisOS, playback uses FreeTube\'s bundled extractor through the AegisOS bridge. The standalone hosted client uses Invidious.',
-          `<a href="${forkSourceUrl}">Exact corresponding source · ${forkRevision}</a>`,
-          `<a href="${deployedArchiveUrl}">Download corresponding source archive</a>`,
-        ].join('<br>'),
-      }]
-    : []),
+const aegisTubeChunks = [
+  {
+    icon: ['fas', 'info-circle'],
+    title: 'Private video, local library',
+    content: [
+      'AegisTube is the self-contained private video experience built into AegisOS.',
+      'Subscriptions, playlists, settings, and watch history stay on this device.',
+      'No Google account is required for ordinary browsing and playback.',
+    ].join('<br>'),
+  },
+  {
+    icon: ['fab', 'github'],
+    title: 'Open source & legal',
+    content: [
+      '<strong>Powered by FreeTube</strong>',
+      'AegisTube is an independent modified distribution and is not an official FreeTube release or service.',
+      'Based on FreeTube v0.25.1-beta.',
+      '<a href="https://github.com/FreeTubeApp/FreeTube">FreeTube upstream source and credits</a>',
+      `<a href="${forkSourceUrl}">AegisTube corresponding source · ${forkRevision}</a>`,
+      ...(deployedArchiveUrl
+        ? [`<a href="${deployedArchiveUrl}">Download corresponding source archive</a>`]
+        : []),
+      '<a href="https://www.gnu.org/licenses/agpl-3.0.en.html">GNU AGPL-3.0-or-later · no warranty</a>',
+    ].join('<br>'),
+  },
+  {
+    icon: ['fas', 'question-circle'],
+    title: 'AegisTube support',
+    content: [
+      '<a href="https://github.com/fairoosansar-coder/FreeTube/issues">Report an AegisTube problem</a>',
+      '<a href="https://github.com/fairoosansar-coder/FreeTube">View the AegisTube project</a>',
+      'Import remains compatible with existing FreeTube database exports.',
+    ].join('<br>'),
+  }
+]
+
+const freeTubeChunks = [
   {
     icon: ['fab', 'github'],
     title: t('About.Source code'),
     content: [
-      '<a href="https://github.com/FreeTubeApp/FreeTube" lang="en" dir="ltr">Upstream: FreeTubeApp/FreeTube</a>',
+      '<a href="https://github.com/FreeTubeApp/FreeTube" lang="en" dir="ltr">GitHub</a>',
       t('About.Licensed under the {licenseLink}', {
         licenseLink: `<a href="https://www.gnu.org/licenses/agpl-3.0.en.html">${t('About.AGPLv3')}</a>`,
       }),
@@ -109,7 +133,7 @@ const chunks = computed(() => [
     content: [
       `<a href="https://docs.freetubeapp.io/">${t('About.FreeTube Wiki')}</a>`,
       `<a href="https://docs.freetubeapp.io/faq/">${t('About.FAQ')}</a>`,
-      `<a href="https://github.com/FreeTubeApp/FreeTube/discussions/">${t('About.Discussions')}</a>`
+      `<a href="https://github.com/FreeTubeApp/FreeTube/discussions/">${t('About.Discussions')}</a>`,
     ].join(' / '),
   },
   {
@@ -118,8 +142,10 @@ const chunks = computed(() => [
     content: t('About.FreeTube is made possible by {creditsPageLink}', {
       creditsPageLink: `<a href="https://docs.freetubeapp.io/credits/">${t('About.these people and projects')}</a>`,
     }),
-  }
-])
+  },
+]
+
+const chunks = computed(() => isAegisTube ? aegisTubeChunks : freeTubeChunks)
 </script>
 
 <style scoped src="./About.css" />

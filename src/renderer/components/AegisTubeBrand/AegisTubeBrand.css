@@ -8,37 +8,10 @@
 
 .brandMark {
   block-size: 34px;
+  border-radius: 8px;
   flex: 0 0 auto;
   inline-size: 34px;
-  overflow: visible;
-}
-
-.orbit {
-  fill: #07152b;
-  stroke: #25b4ff;
-  stroke-width: 3;
-}
-
-.aMark {
-  fill: #e8b33c;
-  stroke: #fff3bc;
-  stroke-linejoin: round;
-  stroke-width: 1.2;
-}
-
-.core {
-  fill: #fff;
-  filter: drop-shadow(0 0 4px #8ff6ff);
-}
-
-.node {
-  fill: #07152b;
-  stroke: #25b4ff;
-  stroke-width: 2;
-}
-
-.goldNode {
-  stroke: #e8b33c;
+  object-fit: contain;
 }
 
 .brandCopy {
@@ -82,6 +55,7 @@
 
 .hero .brandMark {
   block-size: clamp(84px, 14vw, 132px);
+  border-radius: clamp(20px, 3vw, 30px);
   inline-size: clamp(84px, 14vw, 132px);
 }
 

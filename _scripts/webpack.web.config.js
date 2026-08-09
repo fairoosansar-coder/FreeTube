@@ -142,6 +142,7 @@ const config = {
       'process.env.IS_ELECTRON': false,
       'process.env.IS_ELECTRON_MAIN': false,
       'process.env.SUPPORTS_LOCAL_API': true,
+      'process.env.AEGISTUBE_EDITION': true,
       'process.env.AEGISOS_WEB_EDITION': true,
       'process.env.AEGISOS_PRODUCT_NAME': JSON.stringify('AegisTube'),
       'process.env.AEGISOS_FORK_COMMIT': JSON.stringify(aegisForkCommit),
