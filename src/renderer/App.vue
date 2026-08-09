@@ -570,14 +570,15 @@ const windowTitle = computed(() => {
 
 /** @type {import('vue').ComputedRef<string>} */
 const appTitle = computed(() => store.getters.getAppTitle)
+const productName = process.env.AEGISOS_PRODUCT_NAME || packageDetails.productName
 
 watch(appTitle, (value) => {
   if (value.length > 0) {
-    document.title = `${value} - ${packageDetails.productName}`
+    document.title = `${value} - ${productName}`
   } else {
-    document.title = packageDetails.productName
+    document.title = productName
   }
-})
+}, { immediate: true })
 
 watch(windowTitle, setWindowTitle)
 

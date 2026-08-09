@@ -93,13 +93,13 @@ function sendToParent(type, responseType, payload, timeoutMs) {
 
   return new Promise((resolve, reject) => {
     if (type !== 'probe' && parentOrigin === null) {
-      reject(new Error('AegisOS FreeTube bridge has no trusted parent'))
+      reject(new Error('The AegisTube bridge has no trusted AegisOS parent'))
       return
     }
     const id = requestId()
     const timeout = window.setTimeout(() => {
       pending.delete(id)
-      reject(new Error('AegisOS FreeTube bridge timed out'))
+      reject(new Error('The AegisTube bridge timed out'))
     }, timeoutMs)
 
     pending.set(id, { responseType, resolve, timeout })
@@ -179,12 +179,12 @@ export async function fetchThroughAegisProxy(input) {
   const approvedOrigins = await getAegisProxyOrigins()
   if (approvedOrigins === null) {
     if (expectsNativeBridge) {
-      throw new Error('AegisOS native video bridge did not answer. Reload FreeTube to reconnect it.')
+      throw new Error('AegisOS native video bridge did not answer. Reload AegisTube to reconnect it.')
     }
     return null
   }
   if (!approvedOrigins.includes(url.origin)) {
-    throw new Error('FreeTube selected a video service that the installed AegisOS relay does not approve')
+    throw new Error('AegisTube selected a video service that the installed AegisOS relay does not approve')
   }
 
   const message = await sendToParent(
@@ -240,7 +240,7 @@ export async function fetchThroughAegisInnertube(input, init = undefined) {
   const config = await getNativeProxyConfig()
   if (config === null) {
     if (expectsNativeBridge) {
-      throw new Error('AegisOS native YouTube bridge did not answer. Reload FreeTube to reconnect it.')
+      throw new Error('AegisOS native YouTube bridge did not answer. Reload AegisTube to reconnect it.')
     }
     return null
   }

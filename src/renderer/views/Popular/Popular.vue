@@ -29,7 +29,7 @@
         />
         <h3>{{ t('Public video service unavailable') }}</h3>
         <p>
-          {{ t('FreeTube Web unavailable help') }}
+          {{ t('AegisTube unavailable help') }}
         </p>
         <button
           type="button"

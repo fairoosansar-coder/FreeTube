@@ -61,12 +61,18 @@
         :title="headerLogoTitle"
         :to="landingPage"
       >
-        <div
-          class="logoIcon"
+        <AegisTubeBrand
+          v-if="isAegisWeb"
+          show-attribution
         />
-        <div
-          class="logoText"
-        />
+        <template v-else>
+          <div
+            class="logoIcon"
+          />
+          <div
+            class="logoText"
+          />
+        </template>
       </RouterLink>
     </div>
     <div class="middle">
@@ -122,6 +128,7 @@ import { useRoute, useRouter } from 'vue-router'
 
 import FtInput from '../FtInput/FtInput.vue'
 import FtIconButton from '../FtIconButton/FtIconButton.vue'
+import AegisTubeBrand from '../AegisTubeBrand/AegisTubeBrand.vue'
 
 import store from '../../store/index'
 
@@ -132,6 +139,7 @@ import { clearLocalSearchSuggestionsSession, getLocalSearchSuggestions } from '.
 import { getInvidiousSearchSuggestions } from '../../helpers/api/invidious'
 
 const { t } = useI18n()
+const isAegisWeb = process.env.AEGISOS_WEB_EDITION === true
 const privateWebLabel = 'Private web'
 const privateWebTitle = 'Private web mode uses an Invidious instance and stores your library locally'
 const router = useRouter()

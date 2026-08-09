@@ -16,7 +16,7 @@ const sha256 = crypto.createHash('sha256').update(archive).digest('hex')
 const repository = 'https://github.com/fairoosansar-coder/FreeTube'
 
 const buildInfo = {
-  name: 'AegisOS FreeTube Web',
+  name: 'AegisTube Web',
   upstreamRelease: 'v0.25.1-beta',
   upstreamRevision: 'd429de4feb35a177597f409c2c8d8ccd6037313e',
   revision,

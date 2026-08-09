@@ -1,7 +1,11 @@
 # Corresponding source
 
-Every deployed AegisOS FreeTube Web page exposes its exact Git revision in
+Every deployed AegisTube page exposes its exact Git revision in
 the **Source & Legal** screen and in `/build-info.json`.
+
+AegisTube is the AegisOS product surface for this unofficial modified FreeTube
+web edition. FreeTube remains the upstream project name and the source of the
+AGPL-licensed client code.
 
 The complete preferred source for modification is available in three forms:
 
