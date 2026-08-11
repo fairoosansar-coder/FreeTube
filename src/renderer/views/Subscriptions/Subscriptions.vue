@@ -1,13 +1,25 @@
 <template>
-  <div>
+  <div :class="{ aegisView: isAegisTube }">
     <FtCard class="card">
-      <h2>
-        <FontAwesomeIcon
-          :icon="['fas', 'rss']"
-          class="subscriptionIcon"
-        />
-        {{ $t("Subscriptions.Subscriptions") }}
-      </h2>
+      <div class="followingHeader">
+        <h2 class="pageTitle">
+          <FontAwesomeIcon
+            :icon="['fas', 'rss']"
+            class="subscriptionIcon"
+          />
+          {{ isAegisTube ? aegisHeading : $t("Subscriptions.Subscriptions") }}
+        </h2>
+        <button
+          v-if="isAegisTube"
+          type="button"
+          class="importSubscriptionsButton"
+          :title="subscriptionImportTitle"
+          @click="openSubscriptionImport"
+        >
+          <FontAwesomeIcon :icon="['fas', 'file-download']" />
+          <span>{{ subscriptionImportLabel }}</span>
+        </button>
+      </div>
       <FtFlexBox
         class="tabs"
         role="tablist"
@@ -127,6 +139,7 @@
 <script setup>
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { computed, ref, useTemplateRef, watch } from 'vue'
+import { useRouter } from 'vue-router'
 
 import FtCard from '../../components/ft-card/ft-card.vue'
 import FtFlexBox from '../../components/ft-flex-box/ft-flex-box.vue'
@@ -136,6 +149,19 @@ import SubscriptionsShorts from '../../components/SubscriptionsShorts.vue'
 import SubscriptionsPosts from '../../components/SubscriptionsPosts.vue'
 
 import store from '../../store/index'
+
+const isAegisTube = process.env.AEGISTUBE_EDITION === true
+const aegisHeading = 'Following'
+const subscriptionImportLabel = 'Open import tools'
+const subscriptionImportTitle = 'Open subscription import tools in Privacy & Data'
+const router = useRouter()
+
+function openSubscriptionImport() {
+  router.push({
+    path: '/settings',
+    query: { section: 'privacy-data' }
+  })
+}
 
 /** @type {import('vue').ComputedRef<boolean>} */
 const hideSubscriptionsVideos = computed(() => {

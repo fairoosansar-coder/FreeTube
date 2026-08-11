@@ -1,8 +1,16 @@
 <template>
+  <AegisBoot
+    v-if="!dataReady && isAegisTube"
+    :stage="bootStage"
+    :completed-stages="completedBootStages"
+    :error-message="bootError"
+    @retry="retryStartup"
+  />
   <div
-    v-if="dataReady"
+    v-else-if="dataReady"
     class="app"
     :class="{
+      aegisTubeEdition: isAegisTube,
       hideOutlines: outlinesHidden,
       isLocaleRightToLeft: isLocaleRightToLeft,
       isSideNavOpen: isSideNavOpen,
@@ -122,6 +130,7 @@ import FtPlaylistAddVideoPrompt from './components/FtPlaylistAddVideoPrompt/FtPl
 import FtCreatePlaylistPrompt from './components/FtCreatePlaylistPrompt/FtCreatePlaylistPrompt.vue'
 import FtKeyboardShortcutPrompt from './components/FtKeyboardShortcutPrompt/FtKeyboardShortcutPrompt.vue'
 import FtSearchFilters from './components/FtSearchFilters/FtSearchFilters.vue'
+import AegisBoot from './components/AegisTubeShell/AegisBoot.vue'
 import { vSaferHtml } from './directives/vSaferHtml.js'
 
 import store from './store/index'
@@ -130,11 +139,17 @@ import packageDetails from '../../package.json'
 import { openExternalLink, openInternalPath, showToast } from './helpers/utils'
 import { translateWindowTitle } from './helpers/strings'
 import { loadLocale } from './i18n/index'
-import { isAegisNativeExtractorExpected } from './helpers/aegisBridge'
+import {
+  emitAegisShellEvent,
+  getAegisProxyOrigins,
+  isAegisNativeExtractorExpected,
+  subscribeToAegisShellEvent,
+} from './helpers/aegisBridge'
 
 const route = useRoute()
 const router = useRouter()
 const { locale, t } = useI18n()
+const isAegisTube = process.env.AEGISTUBE_EDITION === true
 
 /** @type {import('vue').ComputedRef<boolean>} */
 const isSideNavOpen = computed(() => store.getters.getIsSideNavOpen)
@@ -166,44 +181,106 @@ const landingPage = computed(() => '/' + store.getters.getLandingPage)
 const defaultInvidiousInstance = computed(() => store.getters.getDefaultInvidiousInstance)
 
 const dataReady = ref(false)
+const bootStage = ref('Starting AegisTube')
+const completedBootStages = ref([])
+const bootError = ref('')
+let unsubscribeShellContext = () => {}
+
+function applyAegisShellContext(context) {
+  if (!isAegisTube || context === null || typeof context !== 'object') return
+  if (typeof context.reducedMotion === 'boolean') {
+    document.body.dataset.aegisReducedMotion = String(context.reducedMotion)
+  }
+  if (typeof context.scale === 'number' && context.scale >= 0.75 && context.scale <= 1.5) {
+    document.body.style.setProperty('--aegis-host-scale', String(context.scale))
+    document.documentElement.style.fontSize = `${13 * context.scale}px`
+  }
+}
 
 onMounted(async () => {
-  await store.dispatch('grabUserSettings')
+  try {
+    if (isAegisTube) {
+      unsubscribeShellContext = subscribeToAegisShellEvent('shell-context', applyAegisShellContext)
+    }
 
-  if (process.env.AEGISOS_WEB_EDITION && isAegisNativeExtractorExpected()) {
-    // Native extraction is the reliable playback path. Override an older
-    // saved Invidious-only preference when the authenticated shell is present.
-    store.commit('setBackendPreference', 'local')
-    store.commit('setBackendFallback', true)
-  }
+    if (process.env.AEGISOS_WEB_EDITION && isAegisNativeExtractorExpected()) {
+      bootStage.value = 'Connecting to AegisOS'
+      const proxyOrigins = await getAegisProxyOrigins()
+      completedBootStages.value.push(
+        proxyOrigins === null
+          ? 'AegisOS bridge unavailable; using standalone services'
+          : 'AegisOS bridge connected'
+      )
+    }
 
-  updateTheme()
+    bootStage.value = 'Loading preferences'
+    await store.dispatch('grabUserSettings')
+    completedBootStages.value.push('Preferences loaded')
 
-  await store.dispatch('fetchInvidiousInstancesFromFile')
+    if (process.env.AEGISOS_WEB_EDITION && isAegisNativeExtractorExpected()) {
+      // Native extraction is the reliable playback path. Override an older
+      // saved Invidious-only preference when the authenticated shell is present.
+      store.commit('setBackendPreference', 'local')
+      store.commit('setBackendFallback', true)
+    }
 
-  // Invidious still supplies the lightweight popular feed and remains the
-  // standalone web fallback, so resolve it before mounting the first route.
-  if (process.env.AEGISOS_WEB_EDITION) {
-    await store.dispatch('fetchInvidiousInstances')
-  }
+    updateTheme()
 
-  if (defaultInvidiousInstance.value === '') {
-    await store.dispatch('setRandomCurrentInvidiousInstance')
-  }
+    bootStage.value = 'Preparing playback services'
+    let discoveryPrepared = true
+    try {
+      await store.dispatch('fetchInvidiousInstancesFromFile')
+    } catch (error) {
+      discoveryPrepared = false
+      console.warn('AegisTube public discovery could not load its local service list', error)
+    }
 
-  if (!process.env.AEGISOS_WEB_EDITION) {
-    store.dispatch('fetchInvidiousInstances').then(() => {
-      if (defaultInvidiousInstance.value === '') {
-        store.dispatch('setRandomCurrentInvidiousInstance')
+    // Invidious still supplies the lightweight popular feed and remains the
+    // standalone web fallback, so resolve it before mounting the first route.
+    if (process.env.AEGISOS_WEB_EDITION) {
+      try {
+        await store.dispatch('fetchInvidiousInstances')
+      } catch (error) {
+        discoveryPrepared = false
+        console.warn('AegisTube public discovery could not refresh its service list', error)
       }
-    })
-  }
+    }
 
-  store.dispatch('grabAllProfiles', t('Profile.All Channels')).then(() => {
-    store.dispatch('grabHistory')
-    store.dispatch('grabAllPlaylists')
-    store.dispatch('grabAllSubscriptions')
-    store.dispatch('grabSearchHistoryEntries')
+    if (defaultInvidiousInstance.value === '') {
+      await store.dispatch('setRandomCurrentInvidiousInstance')
+    }
+
+    if (!process.env.AEGISOS_WEB_EDITION) {
+      store.dispatch('fetchInvidiousInstances').then(() => {
+        if (defaultInvidiousInstance.value === '') {
+          store.dispatch('setRandomCurrentInvidiousInstance')
+        }
+      }).catch((error) => {
+        console.warn('Could not refresh the public discovery service list', error)
+      })
+    }
+    completedBootStages.value.push(
+      discoveryPrepared
+        ? 'Playback configuration loaded'
+        : 'Local shell ready; public discovery unavailable'
+    )
+
+    bootStage.value = 'Restoring profiles'
+    await store.dispatch('grabAllProfiles', t('Profile.All Channels'))
+    completedBootStages.value.push('Profiles restored')
+
+    bootStage.value = 'Restoring local library'
+    const libraryResults = await Promise.allSettled([
+      store.dispatch('grabHistory'),
+      store.dispatch('grabAllPlaylists'),
+      store.dispatch('grabAllSubscriptions'),
+      store.dispatch('grabSearchHistoryEntries')
+    ])
+    completedBootStages.value.push(
+      libraryResults.every(result => result.status === 'fulfilled')
+        ? 'Local library restored'
+        : 'Local library opened with limited data'
+    )
 
     if (process.env.IS_ELECTRON || process.env.AEGISOS_WEB_EDITION) {
       document.addEventListener('click', handleClick)
@@ -216,32 +293,47 @@ onMounted(async () => {
       store.dispatch('getExternalPlayerCmdArgumentsData')
     }
 
+    bootStage.value = 'Ready'
     dataReady.value = true
+    emitAegisShellEvent('app-ready', { route: route.fullPath })
 
     if (!process.env.AEGISOS_WEB_EDITION) {
       setTimeout(() => {
         checkForNewUpdates()
       }, 500)
     }
-  })
 
-  if (route.path === '/') {
-    router.replace({ path: landingPage.value })
+    if (route.path === '/') {
+      router.replace({ path: landingPage.value })
+    }
+
+    setWindowTitle()
+
+    document.addEventListener('keydown', handleKeyboardShortcuts)
+    document.addEventListener('mousedown', handleMouseDown)
+    document.addEventListener('dragstart', handleDragStart)
+  } catch (error) {
+    console.error('AegisTube failed to initialize', error)
+    bootStage.value = 'Startup paused'
+    bootError.value = 'AegisTube could not finish loading. Retry to reconnect its playback services and local library.'
   }
-
-  setWindowTitle()
-
-  document.addEventListener('keydown', handleKeyboardShortcuts)
-  document.addEventListener('mousedown', handleMouseDown)
-  document.addEventListener('dragstart', handleDragStart)
 })
 
+function retryStartup() {
+  window.location.reload()
+}
+
 onBeforeUnmount(() => {
+  unsubscribeShellContext()
   document.removeEventListener('keydown', handleKeyboardShortcuts)
   document.removeEventListener('mousedown', handleMouseDown)
   document.removeEventListener('dragstart', handleDragStart)
   document.removeEventListener('click', handleClick)
   document.removeEventListener('auxclick', handleAuxClick)
+})
+
+watch(bootStage, (stage) => {
+  emitAegisShellEvent('boot-status', { stage })
 })
 
 /** @type {import('vue').ComputedRef<string>} */
@@ -259,9 +351,20 @@ const secColor = computed(() => store.getters.getSecColor)
 
 watch(secColor, updateTheme)
 
+/** @type {import('vue').ComputedRef<string>} */
+const aegisAccentKey = computed(() => store.getters.getAegisAccentKey)
+
+watch(aegisAccentKey, updateTheme)
+
 function updateTheme() {
   document.body.className = `${baseTheme.value || 'system'} main${mainColor.value || 'Red'} sec${secColor.value || 'Blue'}`
   document.body.dataset.systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+
+  if (isAegisTube) {
+    document.body.dataset.aegisAccent = aegisAccentKey.value || 'ember'
+  } else {
+    delete document.body.dataset.aegisAccent
+  }
 }
 
 updateTheme()

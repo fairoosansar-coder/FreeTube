@@ -61,6 +61,97 @@
   color: var(--primary-color);
 }
 
+.aegisView .card {
+  background: transparent;
+  box-sizing: border-box;
+  box-shadow: none;
+  inline-size: 100%;
+  margin: 0;
+  max-inline-size: 980px;
+  padding-block: 22px 48px;
+  padding-inline: 30px;
+}
+
+.aegisView .pageTitle {
+  color: #f2f4f8;
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin-block: 0 8px;
+}
+
+.aegisView .headingIcon {
+  display: none;
+}
+
+.aegisView .brand {
+  align-items: center;
+  backdrop-filter: blur(22px);
+  background:
+    radial-gradient(circle at 18% 12%, rgb(var(--aegis-accent-rgb) / 15%), transparent 48%),
+    var(--aegis-glass);
+  border: 1px solid var(--aegis-hairline);
+  border-radius: 14px;
+  box-shadow: 0 20px 54px rgb(0 0 0 / 28%);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  margin-block: 16px 18px;
+  min-block-size: 178px;
+  padding: 24px;
+}
+
+.aegisView .version {
+  color: #8891a0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11.5px;
+  letter-spacing: 0.03em;
+  margin-block: 12px 0;
+}
+
+.aegisView .about-chunks {
+  gap: 14px;
+  max-inline-size: none;
+}
+
+.aegisView .chunk {
+  backdrop-filter: blur(18px);
+  background: rgb(255 255 255 / 4%);
+  border: 1px solid var(--aegis-hairline);
+  border-radius: 12px;
+  box-shadow: none;
+  gap: 8px 13px;
+  padding-block: 16px;
+  padding-inline: 18px;
+}
+
+.aegisView .chunk:first-child {
+  grid-column: 1 / -1;
+}
+
+.aegisView .icon {
+  color: var(--aegis-accent-light);
+  font-size: 18px;
+}
+
+.aegisView .title {
+  color: #eef1f5;
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.aegisView .content {
+  color: #8891a0;
+  font-size: 12.5px;
+  line-height: 1.65;
+}
+
+.aegisView .content :deep(a) {
+  color: var(--aegis-accent-light);
+  text-decoration-color: rgb(var(--aegis-accent-rgb) / 40%);
+  text-underline-offset: 3px;
+}
+
 @media only screen and (width <=650px) {
   .about-chunks {
     grid-template-columns: 1fr;
@@ -70,5 +161,20 @@
 @media only screen and (width <=680px) {
   .card {
     inline-size: 90%;
+  }
+
+  .aegisView .card {
+    inline-size: 100%;
+    padding-block-start: 14px;
+    padding-inline: 14px;
+  }
+
+  .aegisView .brand {
+    min-block-size: 150px;
+    padding: 18px;
+  }
+
+  .aegisView .chunk:first-child {
+    grid-column: auto;
   }
 }

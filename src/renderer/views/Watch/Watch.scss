@@ -207,3 +207,97 @@
     }
   }
 }
+
+:global([data-aegis-accent] .videoLayout) {
+  box-sizing: border-box;
+  column-gap: 18px;
+  inline-size: 100%;
+  margin-inline: auto;
+  max-inline-size: 1320px;
+  padding-block: 18px 48px;
+  padding-inline: 26px;
+}
+
+:global([data-aegis-accent] .videoAreaMargin) {
+  margin-block-end: 14px;
+}
+
+:global([data-aegis-accent] .videoPlayer) {
+  background: #000;
+  border: 1px solid var(--aegis-hairline);
+  border-radius: 12px;
+  box-shadow: 0 24px 56px rgb(0 0 0 / 34%);
+  max-inline-size: 880px;
+  overflow: hidden;
+}
+
+:global([data-aegis-accent] .videoPlayer .videoThumbnail) {
+  display: block;
+}
+
+:global([data-aegis-accent] .errorWrapper) {
+  backdrop-filter: blur(20px);
+  background: rgb(7 9 14 / 86%);
+  border: 1px solid var(--aegis-hairline);
+  border-radius: 12px;
+  color: #eef1f5;
+  font-size: 12.5px;
+  padding-block: 14px;
+  padding-inline: 16px;
+}
+
+:global([data-aegis-accent] .errorIcon) {
+  color: var(--aegis-accent-light);
+  font-size: 38px;
+}
+
+:global([data-aegis-accent] .watchVideo) {
+  margin-block-end: 12px;
+}
+
+:global([data-aegis-accent] .sidebarArea) {
+  min-inline-size: 0;
+}
+
+:global([data-aegis-accent] .watchVideoPlaylist),
+:global([data-aegis-accent] .watchVideoSidebar),
+:global([data-aegis-accent] .theatrePlaylist) {
+  margin-block-end: 12px;
+  margin-inline: 0;
+}
+
+:global([data-aegis-accent] .watchVideoRecommendations),
+:global([data-aegis-accent] .theatreRecommendations) {
+  margin-block-end: 12px;
+  margin-inline: 0;
+}
+
+@media only screen and (width <= 1050px) {
+  :global([data-aegis-accent] .videoLayout) {
+    max-inline-size: 900px;
+  }
+
+  :global([data-aegis-accent] .sidebarArea) {
+    margin-block-start: 4px;
+  }
+}
+
+@media only screen and (width <= 680px) {
+  :global([data-aegis-accent] .videoLayout) {
+    padding-block-start: 12px;
+    padding-inline: 12px;
+  }
+
+  :global([data-aegis-accent] .videoPlayer) {
+    border-radius: 8px;
+  }
+
+  :global([data-aegis-accent] .errorWrapper) {
+    gap: 10px;
+    padding: 10px;
+  }
+
+  :global([data-aegis-accent] .errorIcon) {
+    font-size: 28px;
+  }
+}

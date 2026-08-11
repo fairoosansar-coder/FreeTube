@@ -35,15 +35,34 @@ or service and is not endorsed by the FreeTube project.
   screen; release artifacts and the hosted edition also publish
   `/build-info.json`.
 - Remove the broken web manifest/service-worker registration from embed builds.
-- Simplify navigation to Home, Subscriptions, Playlists, History, Settings,
-  and Source & Legal.
-- Remove duplicate channel navigation, the new-window action, the profile
-  bubble, social/donation clutter, and settings that do not apply to this web
-  target.
-- Default to a compact AegisOS-compatible dark theme, Popular as Home,
-  SponsorBlock enabled, and a quieter watch page.
-- Add a lightweight boot screen and a clear retry/fallback state when public
-  Invidious capacity is unavailable.
+- Recreate the AegisTube Shell v2 design as a real Vue application shell while
+  preserving FreeTube's routes, player, local library, profiles, search,
+  import/export tools, settings database, SponsorBlock, and DeArrow behavior.
+- Present Home, Following, Playlists, History, Settings, and Source & Legal in
+  a 208/64-pixel responsive rail, with a compact bottom navigation on phones.
+  "Following" is a product label for FreeTube's existing local subscriptions
+  route and does not change the underlying interoperable data model.
+- Add a single responsive toolbar with real navigation history, real YouTube
+  search and URL handling, filters, the active local profile switcher, a private-local
+  status, and a Power Stats control connected to the player's actual Shaka
+  statistics.
+- Add Home feed modes backed by real public-feed, local-following, and local-
+  history data, plus a real persisted grid/list switch. The Following import
+  action opens the existing subscription import tools in Privacy & Data.
+- Add five persistent "Souls" accents (Ember, Wraith, Moss, Ashen Gold, and
+  Wisp) and apply the chosen accent across the complete AegisTube surface.
+- Reorganize the real settings into the v2 two-pane taxonomy, keep deep links
+  and mobile navigation, and connect the keyboard-shortcuts control to the
+  existing FreeTube shortcuts prompt.
+- Keep the standard FreeTube renderer separate: AegisTube shell markup and
+  styles are compiled only for the AegisTube web edition.
+- Default to a compact AegisOS-compatible dark theme, Home as the landing page,
+  SponsorBlock enabled, and a quieter watch page without subscriber counts or
+  subscription controls. Downloads remain disabled until AegisOS provides a
+  permissioned native download manager.
+- Add a staged boot screen driven by actual bridge, preference, profile,
+  playback-configuration, and local-library initialization. Public Invidious
+  discovery failures do not block the local shell or native playback path.
 - Resolve the live CORS-capable Invidious pool before mounting the first route,
   time out stalled requests, and retry once with a refreshed instance.
 - When embedded by the installed AegisOS shell, use its versioned

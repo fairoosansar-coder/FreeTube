@@ -3,41 +3,32 @@
     class="aegisTubeBrand"
     :class="{ hero }"
     role="img"
-    :aria-label="showAttribution ? 'AegisTube, powered by FreeTube' : 'AegisTube'"
+    :aria-label="brandLabel"
   >
-    <img
+    <AegisTubeMark
       class="brandMark"
-      :src="aegisTubeMark"
-      alt=""
-      aria-hidden="true"
-    >
+    />
     <span class="brandCopy">
-      <span class="wordmark"><strong>{{ brandPrefix }}</strong><strong class="tube">{{ brandSuffix }}</strong></span>
-      <span
-        v-if="showAttribution"
-        class="attribution"
-      >{{ attributionLabel }}</span>
+      <span class="wordmark"><span class="aegis">{{ brandPrefix }}</span><span class="tube">{{ brandSuffix }}</span></span>
     </span>
   </span>
 </template>
 
 <script setup>
-import aegisTubeMark from '../../assets/img/aegistube-mark.svg'
+import AegisTubeMark from '../AegisTubeShell/AegisTubeMark.vue'
 
-const brandPrefix = 'Aegis'
-const brandSuffix = 'Tube'
-const attributionLabel = 'Powered by FreeTube'
+const brandLabel = 'AegisTube'
 
-defineProps({
+const props = defineProps({
   hero: {
     type: Boolean,
     default: false,
   },
-  showAttribution: {
-    type: Boolean,
-    default: false,
-  },
 })
+
+const { hero } = props
+const brandPrefix = hero ? 'Aegis' : 'AEGIS'
+const brandSuffix = hero ? 'Tube' : 'TUBE'
 </script>
 
 <style scoped src="./AegisTubeBrand.css" />

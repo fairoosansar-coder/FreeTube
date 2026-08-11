@@ -1,8 +1,8 @@
 <!-- Modified 2026-08-06 for the AegisOS web edition. -->
 <template>
-  <div>
+  <div :class="{ aegisView: isAegisTube }">
     <FtCard class="card">
-      <h2>
+      <h2 class="pageTitle">
         <FontAwesomeIcon
           :icon="['fas', 'info-circle']"
           class="headingIcon"
@@ -13,7 +13,6 @@
         <AegisTubeBrand
           v-if="isAegisTube"
           hero
-          show-attribution
         />
         <FtLogoFull
           v-else

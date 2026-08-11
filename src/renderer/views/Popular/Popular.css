@@ -55,8 +55,136 @@
   filter: brightness(1.08);
 }
 
+.aegisView .card {
+  background: transparent;
+  box-sizing: border-box;
+  box-shadow: none;
+  inline-size: 100%;
+  margin: 0;
+  padding-block: 18px 48px;
+  padding-inline: 26px;
+}
+
+.aegisView .pageTitle {
+  color: #f2f4f8;
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin-block: 0 16px;
+}
+
+.aegisView .aegisHomeHeading {
+  align-items: center;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+}
+
+.aegisView .aegisViewButtons,
+.aegisView .aegisSortChips {
+  align-items: center;
+  display: flex;
+  gap: 6px;
+}
+
+.aegisView .aegisViewButtons {
+  flex: none;
+  margin-block-end: 16px;
+}
+
+.aegisView .aegisSortChips {
+  border-block-end: 1px solid var(--aegis-hairline);
+  flex-wrap: wrap;
+  margin-block-end: 20px;
+  padding-block-end: 13px;
+}
+
+.aegisView .aegisIconButton,
+.aegisView .aegisSortChip {
+  background: rgb(255 255 255 / 4%);
+  border: 1px solid var(--aegis-hairline);
+  color: #9aa3b0;
+  cursor: pointer;
+  transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease;
+}
+
+.aegisView .aegisIconButton {
+  align-items: center;
+  block-size: 34px;
+  border-radius: 8px;
+  display: inline-flex;
+  inline-size: 34px;
+  justify-content: center;
+  padding: 0;
+}
+
+.aegisView .aegisSortChip {
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 650;
+  padding-block: 7px;
+  padding-inline: 12px;
+}
+
+.aegisView .aegisIconButton:hover,
+.aegisView .aegisIconButton:focus-visible,
+.aegisView .aegisSortChip:hover,
+.aegisView .aegisSortChip:focus-visible {
+  border-color: rgb(var(--aegis-accent-rgb) / 28%);
+  color: #eef1f5;
+}
+
+.aegisView .aegisIconButton.active,
+.aegisView .aegisSortChip.active {
+  background: var(--aegis-accent);
+  border-color: var(--aegis-accent);
+  box-shadow: 0 7px 20px rgb(var(--aegis-accent-rgb) / 18%);
+  color: var(--aegis-on-accent);
+}
+
+.aegisView .headingIcon {
+  display: none;
+}
+
+.aegisView .aegisEmptyState {
+  backdrop-filter: blur(22px);
+  background: var(--aegis-glass);
+  border-color: var(--aegis-hairline);
+  border-radius: 12px;
+  box-shadow: 0 18px 44px rgb(0 0 0 / 28%);
+}
+
+.aegisView .aegisRetryButton {
+  background: var(--aegis-accent);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgb(var(--aegis-accent-rgb) / 20%);
+  color: var(--aegis-on-accent);
+}
+
 @media only screen and (width <= 680px) {
   .card {
     inline-size: 90%;
+  }
+
+  .aegisView .card {
+    inline-size: 100%;
+    padding-block-start: 14px;
+    padding-inline: 14px;
+  }
+
+  .aegisView .aegisHomeHeading {
+    align-items: flex-start;
+  }
+
+  .aegisView .aegisSortChips {
+    flex-wrap: nowrap;
+    margin-inline: -4px;
+    overflow-x: auto;
+    padding-inline: 4px;
+    scrollbar-width: none;
+  }
+
+  .aegisView .aegisSortChip {
+    flex: none;
   }
 }

@@ -51,3 +51,33 @@
 .license {
   margin-block: 1em;
 }
+
+:global(body[data-aegis-accent] .videoDescription) {
+  backdrop-filter: blur(18px);
+  background: rgb(255 255 255 / 4%);
+  border: 1px solid var(--aegis-hairline);
+  border-radius: 10px;
+  box-shadow: none;
+  color: #c3c7ce;
+  padding-block: 13px;
+  padding-inline: 15px;
+}
+
+:global(body[data-aegis-accent] .videoDescription .description) {
+  font-family: inherit;
+  font-size: 12.5px;
+  line-height: 1.6;
+}
+
+/* The edition wrapper intentionally follows the upstream short-description states. */
+/* stylelint-disable-next-line no-descending-specificity */
+:global(body[data-aegis-accent] .videoDescription .descriptionStatus) {
+  color: var(--aegis-accent-light);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+:global(body[data-aegis-accent] .videoDescription.short .descriptionStatus) {
+  background: linear-gradient(270deg, var(--aegis-panel) 72%, transparent 100%);
+  border-radius: 0 0 8px;
+}

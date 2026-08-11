@@ -38,8 +38,118 @@
   color: var(--primary-color);
 }
 
+.aegisView .card {
+  background: transparent;
+  box-sizing: border-box;
+  box-shadow: none;
+  inline-size: 100%;
+  margin: 0;
+  padding-block: 18px 48px;
+  padding-inline: 26px;
+}
+
+.aegisView .pageTitle {
+  color: #f2f4f8;
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin-block: 0 14px;
+}
+
+.aegisView .followingHeader {
+  align-items: center;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+}
+
+.aegisView .importSubscriptionsButton {
+  align-items: center;
+  background: var(--aegis-accent);
+  border: 0;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgb(var(--aegis-accent-rgb) / 18%);
+  color: var(--aegis-on-accent);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 11.5px;
+  font-weight: 700;
+  gap: 7px;
+  margin-block-end: 14px;
+  padding-block: 8px;
+  padding-inline: 12px;
+  white-space: nowrap;
+}
+
+.aegisView .importSubscriptionsButton:hover,
+.aegisView .importSubscriptionsButton:focus-visible {
+  filter: brightness(1.08);
+}
+
+.aegisView .pageTitle .subscriptionIcon {
+  display: none;
+}
+
+.aegisView .tabs {
+  border-block-end: 1px solid var(--aegis-hairline);
+  gap: 4px;
+  margin-block: 0 18px;
+}
+
+.aegisView .tab {
+  align-self: stretch;
+  border-block-end: 2px solid transparent;
+  border-radius: 8px 8px 0 0;
+  color: #8891a0;
+  font-size: 12.5px;
+  font-weight: 600;
+  padding-block: 9px 10px;
+  padding-inline: 13px;
+  transition: background 140ms ease, color 140ms ease;
+}
+
+.aegisView .tab:hover {
+  background: rgb(255 255 255 / 4%);
+  color: #dfe2e8;
+  font-weight: 600;
+}
+
+.aegisView .selectedTab {
+  background: var(--aegis-accent-wash);
+  border-block-end-color: var(--aegis-accent);
+  color: var(--aegis-accent-light);
+  margin-block-end: 0;
+}
+
+.aegisView .tab .subscriptionIcon {
+  color: currentcolor;
+}
+
 @media only screen and (width <= 680px) {
   .card {
     inline-size: 90%;
+  }
+
+  .aegisView .card {
+    inline-size: 100%;
+    padding-block-start: 14px;
+    padding-inline: 14px;
+  }
+
+  .aegisView .tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+  }
+
+  .aegisView .followingHeader {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .aegisView .tab {
+    flex: 0 0 auto;
+    font-size: 12px;
+    padding-inline: 10px;
   }
 }

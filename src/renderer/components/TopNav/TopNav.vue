@@ -1,7 +1,147 @@
 <!-- Modified 2026-08-06 for the AegisOS web edition. -->
 <template>
   <nav
+    v-if="isAegisTube"
     class="topNav"
+    :class="{ topNavBarColor: barColor, aegisTopNav: isAegisTube }"
+  >
+    <div class="brandGroup">
+      <button
+        class="menuButton navButton"
+        :aria-label="expandCollapseSideBarLabel"
+        :title="expandCollapseSideBarLabel"
+        @click="toggleSideNav"
+      >
+        <FontAwesomeIcon
+          class="navIcon"
+          :icon="['fas', 'bars']"
+        />
+      </button>
+      <RouterLink
+        v-if="!hideHeaderLogo"
+        class="logo"
+        dir="ltr"
+        :title="headerLogoTitle"
+        :to="landingPage"
+      >
+        <AegisTubeBrand
+          v-if="isAegisTube"
+        />
+        <template v-else>
+          <div class="logoIcon" />
+          <div class="logoText" />
+        </template>
+      </RouterLink>
+      <button
+        v-if="!hideSearchBar"
+        class="navSearchButton navButton"
+        :aria-label="searchPlaceholder"
+        :title="searchPlaceholder"
+        @click="toggleSearchContainer"
+      >
+        <FontAwesomeIcon
+          class="navIcon"
+          :icon="['fas', 'search']"
+        />
+      </button>
+    </div>
+    <div class="navigationGroup">
+      <FtIconButton
+        class="navIconButton backButton"
+        :disabled="isArrowBackwardDisabled"
+        :class="{ arrowDisabled: isArrowBackwardDisabled }"
+        :icon="['fas', 'arrow-left']"
+        :theme="null"
+        :size="20"
+        :use-shadow="false"
+        dropdown-position-x="right"
+        :dropdown-options="navigationHistoryDropdownOptions"
+        open-on-right-or-long-click
+        :title="backwardText"
+        @click="historyBack"
+      />
+      <FtIconButton
+        class="navIconButton forwardButton"
+        :disabled="isArrowForwardDisabled"
+        :class="{ arrowDisabled: isArrowForwardDisabled }"
+        :icon="['fas', 'arrow-right']"
+        :theme="null"
+        :size="20"
+        :use-shadow="false"
+        dropdown-position-x="right"
+        :dropdown-options="navigationHistoryDropdownOptions"
+        open-on-right-or-long-click
+        :title="forwardText"
+        @click="historyForward"
+      />
+    </div>
+    <div class="middle">
+      <div
+        v-if="!hideSearchBar"
+        v-show="showSearchContainer"
+        ref="searchContainer"
+        class="searchContainer"
+      >
+        <FtInput
+          ref="searchInput"
+          :placeholder="searchPlaceholder"
+          class="searchInput"
+          is-search
+          :data-list="activeDataList"
+          :data-list-properties="activeDataListProperties"
+          show-clear-text-button
+          show-data-when-empty
+          @input="getSearchSuggestionsDebounce"
+          @click="goToSearch"
+          @clear="clearLastSuggestionQuery"
+          @remove="removeSearchHistoryEntryInDbAndCache"
+        />
+        <button
+          class="navFilterButton navButton"
+          :class="{ filterChanged: searchFilterValueChanged }"
+          :aria-label="t('Search Filters.Search Filters')"
+          :title="t('Search Filters.Search Filters')"
+          @click="showSearchFilters"
+        >
+          <FontAwesomeIcon
+            class="navIcon"
+            :icon="['fas', 'filter']"
+          />
+        </button>
+      </div>
+    </div>
+    <div class="statusGroup">
+      <div
+        class="aegisMode"
+        :title="privateWebTitle"
+      >
+        <span class="modeDot" />
+        <span>{{ privateWebLabel }}</span>
+      </div>
+      <button
+        v-if="isWatchRoute"
+        type="button"
+        class="powerStatsButton navButton"
+        :class="{ active: powerStatsOn }"
+        :aria-pressed="powerStatsOn"
+        :title="powerStatsOn ? 'Hide real player statistics' : 'Show real player statistics'"
+        @click="togglePowerStats"
+      >
+        <FontAwesomeIcon :icon="['fas', 'gauge']" />
+        <span class="powerStatsLabel">{{ powerStatsLabel }}</span>
+      </button>
+      <div
+        class="profileIdentity"
+        :title="activeProfileLabel"
+      >
+        <FtProfileSelector class="profileSwitcher" />
+        <span class="profileName">{{ activeProfileLabel }}</span>
+      </div>
+    </div>
+  </nav>
+  <nav
+    v-else
+    class="topNav normalTopNav"
     :class="{ topNavBarColor: barColor }"
   >
     <div class="side">
@@ -61,17 +201,8 @@
         :title="headerLogoTitle"
         :to="landingPage"
       >
-        <AegisTubeBrand
-          v-if="isAegisTube"
-        />
-        <template v-else>
-          <div
-            class="logoIcon"
-          />
-          <div
-            class="logoText"
-          />
-        </template>
+        <div class="logoIcon" />
+        <div class="logoText" />
       </RouterLink>
     </div>
     <div class="middle">
@@ -127,11 +258,12 @@ import { useRoute, useRouter } from 'vue-router'
 
 import FtInput from '../FtInput/FtInput.vue'
 import FtIconButton from '../FtIconButton/FtIconButton.vue'
+import FtProfileSelector from '../FtProfileSelector/FtProfileSelector.vue'
 import AegisTubeBrand from '../AegisTubeBrand/AegisTubeBrand.vue'
 
 import store from '../../store/index'
 
-import { KeyboardShortcuts, MOBILE_WIDTH_THRESHOLD, SEARCH_RESULTS_DISPLAY_LIMIT } from '../../../constants'
+import { KeyboardShortcuts, MAIN_PROFILE_ID, MOBILE_WIDTH_THRESHOLD, SEARCH_RESULTS_DISPLAY_LIMIT } from '../../../constants'
 import { debounce, localizeAndAddKeyboardShortcutToActionTitle, openInternalPath } from '../../helpers/utils'
 import { translateWindowTitle } from '../../helpers/strings'
 import { clearLocalSearchSuggestionsSession, getLocalSearchSuggestions } from '../../helpers/api/local'
@@ -140,11 +272,14 @@ import { getInvidiousSearchSuggestions } from '../../helpers/api/invidious'
 const { t } = useI18n()
 const isAegisTube = process.env.AEGISTUBE_EDITION === true
 const privateWebLabel = 'Private web'
-const privateWebTitle = 'Private web mode uses an Invidious instance and stores your library locally'
+const privateWebTitle = 'Profiles, subscriptions, playlists, and history stay in your local library'
+const searchPlaceholder = 'Search or paste a YouTube URL'
+const powerStatsLabel = 'POWER STATS'
 const router = useRouter()
 const route = useRoute()
 
 const showSearchContainer = ref(true)
+const powerStatsOn = ref(document.body.dataset.aegisPowerStats === 'true')
 /** @type {import('vue').ShallowRef<string[]>} */
 const navigationHistoryDropdownOptions = shallowRef([])
 /** @type {import('vue').ShallowRef<string[]>} */
@@ -159,6 +294,23 @@ const hideHeaderLogo = computed(() => store.getters.getHideHeaderLogo)
 const enableSearchSuggestions = computed(() => store.getters.getEnableSearchSuggestions)
 /** @type {import('vue').ComputedRef<string>} */
 const barColor = computed(() => store.getters.getBarColor)
+
+const activeProfile = computed(() => store.getters.getActiveProfile)
+const isWatchRoute = computed(() => route.path.startsWith('/watch/'))
+const activeProfileLabel = computed(() => {
+  if (!activeProfile.value) return ''
+  return activeProfile.value._id === MAIN_PROFILE_ID
+    ? t('Profile.All Channels')
+    : activeProfile.value.name
+})
+
+function togglePowerStats() {
+  powerStatsOn.value = !powerStatsOn.value
+  document.body.dataset.aegisPowerStats = String(powerStatsOn.value)
+  window.dispatchEvent(new CustomEvent('aegistube:power-stats', {
+    detail: { enabled: powerStatsOn.value }
+  }))
+}
 
 const expandCollapseSideBarLabel = computed(() => {
   return store.getters.getIsSideNavOpen ? t('Compact side navigation') : t('Expand side navigation')

@@ -3,3 +3,26 @@
   font-weight: bold;
   padding-inline: 4%;
 }
+
+.experimental-availability {
+  box-sizing: border-box;
+  max-inline-size: 640px;
+  padding-block: 15px;
+  padding-inline: 17px;
+  border: 1px solid rgb(var(--aegis-accent-rgb, 232 38 43) / 24%);
+  border-radius: 11px;
+  background: rgb(var(--aegis-accent-rgb, 232 38 43) / 7%);
+}
+
+.experimental-availability h4 {
+  margin-block: 0 6px;
+  color: var(--primary-text-color);
+  font-size: 13.5px;
+}
+
+.experimental-availability p {
+  margin: 0;
+  color: var(--secondary-text-color);
+  font-size: 12.5px;
+  line-height: 1.55;
+}

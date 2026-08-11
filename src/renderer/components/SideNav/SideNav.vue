@@ -1,8 +1,108 @@
-<!-- Modified 2026-08-06 for the AegisOS web edition. -->
+<!-- Modified 2026-08-11 for the AegisTube shell edition. -->
 <template>
   <FtFlexBox
+    v-if="isAegisTube"
+    class="sideNav aegisSideNav"
+    :class="{ opened: isOpen, compact: !isOpen }"
+    role="navigation"
+    :aria-label="navigationLabel"
+  >
+    <div class="inner">
+      <div class="navMain">
+        <router-link
+          class="navOption"
+          role="button"
+          to="/popular"
+          :title="homeLabel"
+        >
+          <span class="thumbnailContainer">
+            <FontAwesomeIcon
+              :icon="['fas', 'play']"
+              class="navIcon"
+            />
+          </span>
+          <span class="navLabel">{{ homeLabel }}</span>
+        </router-link>
+        <router-link
+          class="navOption"
+          role="button"
+          to="/subscriptions"
+          :title="followingLabel"
+        >
+          <span class="thumbnailContainer">
+            <FontAwesomeIcon
+              :icon="['fas', 'rss']"
+              class="navIcon"
+            />
+          </span>
+          <span class="navLabel">{{ followingLabel }}</span>
+        </router-link>
+        <router-link
+          class="navOption"
+          role="button"
+          to="/userplaylists"
+          :title="$t('Playlists')"
+        >
+          <span class="thumbnailContainer">
+            <FontAwesomeIcon
+              :icon="['fas', 'bookmark']"
+              class="navIcon"
+            />
+          </span>
+          <span class="navLabel">{{ $t('Playlists') }}</span>
+        </router-link>
+        <router-link
+          class="navOption"
+          role="button"
+          to="/history"
+          :title="historyTitle"
+        >
+          <span class="thumbnailContainer">
+            <FontAwesomeIcon
+              :icon="['fas', 'history']"
+              class="navIcon"
+            />
+          </span>
+          <span class="navLabel">{{ $t('History.History') }}</span>
+        </router-link>
+      </div>
+
+      <div class="navUtility">
+        <router-link
+          class="navOption settingsOption"
+          role="button"
+          to="/settings"
+          :title="settingsTitle"
+        >
+          <span class="thumbnailContainer">
+            <FontAwesomeIcon
+              :icon="['fas', 'sliders-h']"
+              class="navIcon"
+            />
+          </span>
+          <span class="navLabel">{{ $t('Settings.Settings') }}</span>
+        </router-link>
+        <router-link
+          class="navOption sourceOption"
+          role="button"
+          to="/about"
+          :title="sourceLabel"
+        >
+          <span class="thumbnailContainer">
+            <FontAwesomeIcon
+              :icon="['fas', 'info-circle']"
+              class="navIcon"
+            />
+          </span>
+          <span class="navLabel">{{ sourceLabel }}</span>
+        </router-link>
+      </div>
+    </div>
+  </FtFlexBox>
+  <FtFlexBox
+    v-else
     class="sideNav"
-    :class="[{opened: isOpen}, applyHiddenLabels]"
+    :class="[{ opened: isOpen }, applyHiddenLabels]"
     role="navigation"
   >
     <div
@@ -15,18 +115,14 @@
         to="/popular"
         :title="homeLabel"
       >
-        <div
-          class="thumbnailContainer"
-        >
+        <div class="thumbnailContainer">
           <FontAwesomeIcon
             :icon="['fas', 'play']"
             class="navIcon"
             :class="applyNavIconExpand"
           />
         </div>
-        <p
-          class="navLabel"
-        >
+        <p class="navLabel">
           {{ homeLabel }}
         </p>
       </router-link>
@@ -36,19 +132,15 @@
         to="/subscriptions"
         :title="$t('Subscriptions.Subscriptions')"
       >
-        <div
-          class="thumbnailContainer"
-        >
+        <div class="thumbnailContainer">
           <FontAwesomeIcon
             :icon="['fas', 'rss']"
             class="navIcon"
             :class="applyNavIconExpand"
           />
         </div>
-        <p
-          class="navLabel"
-        >
-          {{ $t("Subscriptions.Subscriptions") }}
+        <p class="navLabel">
+          {{ $t('Subscriptions.Subscriptions') }}
         </p>
       </router-link>
       <router-link
@@ -57,19 +149,15 @@
         to="/userplaylists"
         :title="$t('Playlists')"
       >
-        <div
-          class="thumbnailContainer"
-        >
+        <div class="thumbnailContainer">
           <FontAwesomeIcon
             :icon="['fas', 'bookmark']"
             class="navIcon"
             :class="applyNavIconExpand"
           />
         </div>
-        <p
-          class="navLabel"
-        >
-          {{ $t("Playlists") }}
+        <p class="navLabel">
+          {{ $t('Playlists') }}
         </p>
       </router-link>
       <router-link
@@ -78,19 +166,15 @@
         to="/history"
         :title="historyTitle"
       >
-        <div
-          class="thumbnailContainer"
-        >
+        <div class="thumbnailContainer">
           <FontAwesomeIcon
             :icon="['fas', 'history']"
             class="navIcon"
             :class="applyNavIconExpand"
           />
         </div>
-        <p
-          class="navLabel"
-        >
-          {{ $t("History.History") }}
+        <p class="navLabel">
+          {{ $t('History.History') }}
         </p>
       </router-link>
       <hr>
@@ -100,18 +184,14 @@
         to="/settings"
         :title="settingsTitle"
       >
-        <div
-          class="thumbnailContainer"
-        >
+        <div class="thumbnailContainer">
           <FontAwesomeIcon
             :icon="['fas', 'sliders-h']"
             class="navIcon"
             :class="applyNavIconExpand"
           />
         </div>
-        <p
-          class="navLabel"
-        >
+        <p class="navLabel">
           {{ $t('Settings.Settings') }}
         </p>
       </router-link>
@@ -121,18 +201,14 @@
         to="/about"
         :title="sourceLabel"
       >
-        <div
-          class="thumbnailContainer"
-        >
+        <div class="thumbnailContainer">
           <FontAwesomeIcon
             :icon="['fas', 'info-circle']"
             class="navIcon"
             :class="applyNavIconExpand"
           />
         </div>
-        <p
-          class="navLabel"
-        >
+        <p class="navLabel">
           {{ sourceLabel }}
         </p>
       </router-link>
@@ -153,15 +229,15 @@ import { localizeAndAddKeyboardShortcutToActionTitle } from '../../helpers/utils
 import { KeyboardShortcuts } from '../../../constants'
 
 const { t } = useI18n()
+const isAegisTube = process.env.AEGISTUBE_EDITION === true
 const homeLabel = 'Home'
+const followingLabel = 'Following'
 const sourceLabel = 'Source & Legal'
+const navigationLabel = 'AegisTube'
 
 /** @type {import('vue').ComputedRef<boolean>} */
-const isOpen = computed(() => {
-  return store.getters.getIsSideNavOpen
-})
+const isOpen = computed(() => store.getters.getIsSideNavOpen)
 
-/** @type {import('vue').ComputedRef<boolean>} */
 const hideText = computed(() => {
   return !isOpen.value && store.getters.getHideLabelsSideBar
 })
@@ -197,4 +273,5 @@ const settingsTitle = computed(() => {
 })
 </script>
 
+<style scoped src="./SideNav.normal.css" />
 <style scoped src="./SideNav.css" />

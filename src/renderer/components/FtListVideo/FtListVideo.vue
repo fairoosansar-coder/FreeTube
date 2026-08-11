@@ -5,7 +5,8 @@
       list: effectiveListTypeIsList,
       grid: !effectiveListTypeIsList,
       [appearance]: true,
-      watched: addWatchedStyle
+      watched: addWatchedStyle,
+      aegisItem: isAegisTube
     }"
   >
     <div
@@ -376,6 +377,7 @@ const props = defineProps({
 const emit = defineEmits(['move-video-down', 'move-video-up', 'pause-player', 'remove-from-playlist'])
 
 const { locale, t } = useI18n()
+const isAegisTube = process.env.AEGISTUBE_EDITION === true
 const route = useRoute()
 
 const id = ref('')

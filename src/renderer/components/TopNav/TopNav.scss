@@ -1,3 +1,5 @@
+/* The edition-specific selectors intentionally override the upstream shell. */
+/* stylelint-disable no-descending-specificity */
 @mixin top-nav-is-colored {
   @at-root {
     .topNavBarColor &,
@@ -7,18 +9,380 @@
   }
 }
 
+.topNav.aegisTopNav {
+  align-items: center;
+  backdrop-filter: blur(24px) saturate(145%);
+  background: rgb(12 14 21 / 88%);
+  block-size: 64px;
+  border-block-end: 1px solid rgb(255 255 255 / 7%);
+  box-shadow: 0 10px 30px rgb(0 0 0 / 18%);
+  box-sizing: border-box;
+  display: grid;
+  flex: 0 0 100%;
+  grid-template-columns: minmax(180px, auto) auto minmax(240px, 620px) minmax(150px, 1fr);
+  inline-size: 100%;
+  inset-block-start: 0;
+  inset-inline: 0;
+  padding-block: 0;
+  padding-inline: 12px 16px;
+  position: sticky;
+  z-index: 4;
+
+  &.topNavBarColor {
+    background:
+      linear-gradient(rgb(5 7 12 / 72%), rgb(5 7 12 / 72%)),
+      var(--primary-color);
+  }
+
+  .brandGroup,
+  .navigationGroup,
+  .statusGroup,
+  .searchContainer {
+    align-items: center;
+    display: flex;
+  }
+
+  .brandGroup {
+    gap: 4px;
+    min-inline-size: 0;
+  }
+
+  .navigationGroup {
+    gap: 2px;
+    margin-inline-end: 10px;
+  }
+
+  .statusGroup {
+    gap: 12px;
+    justify-content: flex-end;
+    min-inline-size: 0;
+  }
+
+  .navButton {
+    align-items: center;
+    background: transparent;
+    border: 0;
+    border-radius: 9px;
+    color: #aab1bd;
+    cursor: pointer;
+    display: flex;
+    font-size: 16px;
+    justify-content: center;
+    padding: 9px;
+    transition: background-color 160ms ease, color 160ms ease;
+  }
+
+  .navButton:hover,
+  .navButton:focus-visible,
+  :deep(.ftIconButton:not(.arrowDisabled) .iconButton:hover),
+  :deep(.ftIconButton:not(.arrowDisabled) .iconButton:focus-visible) {
+    background: rgb(255 255 255 / 7%);
+    color: #f2f4f8;
+  }
+
+  .navButton:active,
+  :deep(.ftIconButton:not(.arrowDisabled) .iconButton:active) {
+    background: rgb(var(--aegis-accent-rgb, 255 90 95) / 14%);
+    color: var(--aegis-accent, var(--primary-color));
+  }
+
+  .navIcon {
+    block-size: 1em;
+    inline-size: 1em;
+  }
+
+  :deep(.ftIconButton .iconButton) {
+    background: transparent;
+    block-size: 36px;
+    border-radius: 9px;
+    box-shadow: none;
+    color: #aab1bd;
+    inline-size: 36px;
+    min-block-size: 36px;
+    min-inline-size: 36px;
+    padding: 8px;
+    transition: background-color 160ms ease, color 160ms ease;
+  }
+
+  .arrowDisabled :deep(.iconButton) {
+    background: transparent;
+    cursor: default;
+    opacity: 0.28;
+  }
+
+  .logo {
+    align-items: center;
+    border-radius: 10px;
+    color: inherit;
+    display: flex;
+    min-inline-size: 0;
+    padding-block: 5px;
+    padding-inline: 7px 12px;
+    text-decoration: none;
+    transition: background-color 160ms ease;
+  }
+
+  .logo:hover,
+  .logo:focus-visible {
+    background: rgb(255 255 255 / 5%);
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .logoIcon {
+    background-image: var(--logo-icon);
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: contain;
+    block-size: 28px;
+    inline-size: 28px;
+  }
+
+  .logoText {
+    background-image: var(--logo-text);
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: contain;
+    block-size: 32px;
+    inline-size: 94px;
+    margin-inline-start: 7px;
+  }
+
+  .middle {
+    inline-size: 100%;
+    max-inline-size: 620px;
+    min-inline-size: 0;
+  }
+
+  .searchContainer {
+    gap: 7px;
+    inline-size: 100%;
+    min-inline-size: 0;
+  }
+
+  .searchInput {
+    flex: 1;
+    min-inline-size: 0;
+  }
+
+  .navFilterButton {
+    flex: none;
+  }
+
+  .navFilterButton.filterChanged {
+    background: rgb(var(--aegis-accent-rgb, 255 90 95) / 14%);
+    box-shadow: 0 0 20px rgb(var(--aegis-accent-rgb, 255 90 95) / 18%);
+    color: var(--aegis-accent, var(--primary-color));
+  }
+
+  .navSearchButton {
+    display: none;
+  }
+
+  .aegisMode {
+    align-items: center;
+    background: rgb(255 255 255 / 4%);
+    border: 1px solid rgb(255 255 255 / 7%);
+    border-radius: 999px;
+    color: #929aa7;
+    display: flex;
+    font-size: 11px;
+    gap: 7px;
+    padding-block: 6px;
+    padding-inline: 10px;
+    white-space: nowrap;
+  }
+
+  .modeDot {
+    background: #33d17a;
+    border-radius: 50%;
+    box-shadow: 0 0 10px rgb(51 209 122 / 46%);
+    block-size: 6px;
+    flex: none;
+    inline-size: 6px;
+  }
+
+  .powerStatsButton {
+    border: 1px solid rgb(255 255 255 / 7%);
+    border-radius: 999px;
+    color: #929aa7;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 9.5px;
+    gap: 7px;
+    letter-spacing: 0.045em;
+    padding-block: 7px;
+    padding-inline: 10px;
+    white-space: nowrap;
+  }
+
+  .powerStatsButton.active {
+    background: rgb(var(--aegis-accent-rgb, 255 90 95) / 14%);
+    border-color: rgb(var(--aegis-accent-rgb, 255 90 95) / 24%);
+    color: var(--aegis-accent-light, var(--primary-color));
+  }
+
+  .profileSwitcher {
+    flex: none;
+    position: relative;
+  }
+
+  .profileIdentity {
+    align-items: center;
+    background: rgb(255 255 255 / 4%);
+    border: 1px solid rgb(255 255 255 / 7%);
+    border-radius: 9px;
+    display: flex;
+    gap: 8px;
+    min-inline-size: 0;
+    padding-block: 4px;
+    padding-inline: 4px 10px;
+  }
+
+  .profileName {
+    color: #cfd3da;
+    font-size: 11px;
+    max-inline-size: 108px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .profileSwitcher :deep(.colorOption) {
+    block-size: 32px;
+    border: 1px solid rgb(255 255 255 / 12%);
+    box-shadow: 0 5px 18px rgb(0 0 0 / 28%);
+    inline-size: 32px;
+  }
+
+  .profileSwitcher :deep(.initial) {
+    font-size: 14px;
+    font-weight: 700;
+  }
+
+  .profileSwitcher :deep(.profileList) {
+    backdrop-filter: blur(22px) saturate(140%);
+    background: rgb(18 20 28 / 95%);
+    border: 1px solid rgb(255 255 255 / 10%);
+    border-radius: 12px;
+    box-shadow: 0 24px 60px rgb(0 0 0 / 48%);
+    inset-block-start: 46px;
+  }
+
+  @media only screen and (width <= 960px) {
+    grid-template-columns: minmax(150px, auto) auto minmax(220px, 1fr) auto;
+
+    .aegisMode {
+      background: transparent;
+      border: 0;
+      padding-inline: 0;
+    }
+
+    .profileName {
+      display: none;
+    }
+
+    .profileIdentity {
+      background: transparent;
+      border: 0;
+      padding: 0;
+    }
+
+    .powerStatsLabel {
+      display: none;
+    }
+
+    .powerStatsButton {
+      border-radius: 9px;
+      padding: 9px;
+    }
+  }
+
+  @media only screen and (width <= 760px) {
+    .aegisMode,
+    .powerStatsButton {
+      display: none;
+    }
+  }
+
+  @media only screen and (width <= 680px) {
+    block-size: 58px;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    padding-inline: 8px 12px;
+    position: sticky;
+
+    .brandGroup {
+      min-inline-size: 0;
+    }
+
+    .menuButton {
+      display: none;
+    }
+
+    .navSearchButton {
+      display: flex;
+      margin-inline-start: auto;
+    }
+
+    .navigationGroup {
+      margin-inline-end: 2px;
+    }
+
+    .forwardButton {
+      display: none;
+    }
+
+    .middle {
+      background: rgb(12 14 21 / 98%);
+      border-block-end: 1px solid rgb(255 255 255 / 8%);
+      box-shadow: 0 16px 30px rgb(0 0 0 / 35%);
+      inset-block-start: 58px;
+      inset-inline: 0;
+      max-inline-size: none;
+      padding-block: 8px;
+      padding-inline: 12px;
+      position: absolute;
+    }
+
+    .statusGroup {
+      gap: 0;
+    }
+
+    .logo {
+      padding-inline: 4px;
+    }
+
+    .logo :deep(.aegisTubeBrand .brandMark) {
+      block-size: 30px;
+      inline-size: 30px;
+    }
+
+    .profileSwitcher :deep(.profileList) {
+      inset-block-start: 44px;
+      inset-inline-end: -4px;
+      max-inline-size: calc(100vw - 20px);
+    }
+  }
+
+  @media only screen and (width <= 430px) {
+    .logo :deep(.aegisTubeBrand .brandCopy) {
+      display: none;
+    }
+  }
+}
+
+/* Preserve the upstream FreeTube shell when this is not an AegisTube build. */
 .topNav {
   align-content: center;
   align-items: center;
   background-color: var(--card-bg-color);
+  block-size: 60px;
   box-shadow: 0 2px 1px 0 var(--primary-shadow-color);
   display: flex;
-  block-size: 60px;
+  inline-size: 100%;
+  inset-block-start: 0;
   inset-inline: 0;
   line-height: 60px;
   position: sticky;
-  inset-block-start: 0;
-  inline-size: 100%;
   z-index: 4;
 
   @media only screen and (width >= 961px) {
@@ -46,18 +410,18 @@
 }
 
 .arrowDisabled :deep(.iconButton) {
-  filter: grayscale(1);
   background-color: inherit;
+  cursor: default;
+  filter: grayscale(1);
   opacity: 0.4;
   pointer-events: auto;
-  cursor: default;
   user-select: none;
 }
 
 .navButton {
+  background-color: transparent;
   border-radius: 50%;
   border-style: none;
-  background-color: transparent;
   color: var(--primary-text-color);
   cursor: pointer;
   font-size: 20px;
@@ -97,7 +461,6 @@
     background-color: var(--primary-color-active);
   }
 }
-
 
 .navFilterButton {
   $effect-distance: 20px;
@@ -184,10 +547,10 @@
       background-repeat: no-repeat;
       background-size: 100px;
       block-size: 40px;
+      inline-size: 100px;
+      inset-block-start: -3px;
       margin-inline-start: 5px;
       position: relative;
-      inset-block-start: -3px;
-      inline-size: 100px;
 
       @media only screen and (width <= 680px) {
         display: none;
@@ -210,9 +573,9 @@
 
     @media only screen and (width <= 680px) {
       background-color: var(--side-nav-color);
+      inset-block-start: 60px;
       inset-inline: 0;
       position: fixed;
-      inset-block-start: 60px;
 
       @include top-nav-is-colored {
         background-color: var(--primary-color-hover);
@@ -237,9 +600,9 @@
 
   .modeDot {
     background: #34d399;
+    block-size: 7px;
     border-radius: 50%;
     box-shadow: 0 0 10px rgb(52 211 153 / 45%);
-    block-size: 7px;
     inline-size: 7px;
   }
 
@@ -247,3 +610,4 @@
     display: none;
   }
 }
+/* stylelint-enable no-descending-specificity */

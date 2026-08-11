@@ -4,7 +4,8 @@
     :class="{
       [appearance]: true,
       list: listType === 'list',
-      grid: listType === 'grid'
+      grid: listType === 'grid',
+      aegisItem: isAegisTube
     }"
   >
     <div
@@ -117,6 +118,7 @@ const props = defineProps({
 })
 
 const { t } = useI18n()
+const isAegisTube = process.env.AEGISTUBE_EDITION === true
 
 let playlistId = ''
 let title = ''

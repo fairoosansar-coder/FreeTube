@@ -157,7 +157,20 @@ const defaultSideEffectsTriggerId = settingId =>
   'trigger' + capitalize(settingId) + 'SideEffects'
 /*****/
 
+export const AEGIS_ACCENT_KEYS = Object.freeze([
+  'ember',
+  'wraith',
+  'moss',
+  'ashen-gold',
+  'wisp',
+])
+
+const DEFAULT_AEGIS_ACCENT_KEY = AEGIS_ACCENT_KEYS[0]
+const normalizeAegisAccentKey = value =>
+  AEGIS_ACCENT_KEYS.includes(value) ? value : DEFAULT_AEGIS_ACCENT_KEY
+
 const state = {
+  aegisAccentKey: DEFAULT_AEGIS_ACCENT_KEY,
   autoplayPlaylists: true,
   autoplayVideos: true,
   backendFallback: false,
@@ -462,9 +475,24 @@ const customState = {
 const customGetters = {
 }
 
-const customMutations = {}
+const customMutations = {
+  setAegisAccentKey: (state, value) => {
+    state.aegisAccentKey = normalizeAegisAccentKey(value)
+  },
+}
 
 const customActions = {
+  updateAegisAccentKey: async ({ commit }, value) => {
+    const normalizedValue = normalizeAegisAccentKey(value)
+
+    try {
+      await DBSettingHandlers.upsert('aegisAccentKey', normalizedValue)
+      commit('setAegisAccentKey', normalizedValue)
+    } catch (errMessage) {
+      console.error(errMessage)
+    }
+  },
+
   grabUserSettings: async ({ commit, dispatch, state }) => {
     try {
       const userSettings = await DBSettingHandlers.find()

@@ -245,6 +245,21 @@ export default defineComponent({
       }
     })
 
+    function handleAegisPowerStatsVisibility(event) {
+      if (!process.env.AEGISTUBE_EDITION || typeof event?.detail?.enabled !== 'boolean') {
+        return
+      }
+
+      showStats.value = event.detail.enabled
+      if (showStats.value && player !== null) {
+        gatherInitialStatsValues()
+      }
+
+      events.dispatchEvent(new CustomEvent('setStatsVisibility', {
+        detail: showStats.value
+      }))
+    }
+
     const playerDimensions = computed(() => ({
       width: playerWidth.value,
       height: playerHeight.value
@@ -2739,6 +2754,10 @@ export default defineComponent({
     const initLoadWaitTimeToastAC = new AbortController()
 
     onMounted(async () => {
+      if (process.env.AEGISTUBE_EDITION) {
+        window.addEventListener('aegistube:power-stats', handleAegisPowerStatsVisibility)
+      }
+
       const videoElement = video.value
 
       const volume = sessionStorage.getItem('volume')
@@ -2811,6 +2830,11 @@ export default defineComponent({
       registerFullWindowButton()
       registerLegacyQualitySelection()
       registerStatsButton()
+      if (process.env.AEGISTUBE_EDITION && document.body.dataset.aegisPowerStats === 'true') {
+        handleAegisPowerStatsVisibility(new CustomEvent('aegistube:power-stats', {
+          detail: { enabled: true }
+        }))
+      }
       registerSkipButtons()
 
       if (ui.isMobile()) {
@@ -3236,6 +3260,7 @@ export default defineComponent({
 
       document.removeEventListener('keydown', keyboardShortcutHandler)
       document.removeEventListener('fullscreenchange', fullscreenChangeHandler)
+      window.removeEventListener('aegistube:power-stats', handleAegisPowerStatsVisibility)
 
       if (containerResizeObserver) {
         containerResizeObserver.disconnect()

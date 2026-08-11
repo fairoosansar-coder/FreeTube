@@ -14,6 +14,7 @@ import Channel from '../views/Channel/Channel.vue'
 import Watch from '../views/Watch/Watch.vue'
 import Hashtag from '../views/Hashtag/Hashtag.vue'
 import Post from '../views/Post.vue'
+import { emitAegisShellEvent, subscribeToAegisShellEvent } from '../helpers/aegisBridge'
 
 const router = createRouter({
   history: createWebHashHistory(),
@@ -155,5 +156,33 @@ const router = createRouter({
     })
   }
 })
+
+if (process.env.AEGISTUBE_EDITION === true) {
+  subscribeToAegisShellEvent('navigate', (message) => {
+    const route = message?.route
+    if (
+      typeof route !== 'string' ||
+      route.length === 0 ||
+      route.length > 2048 ||
+      !route.startsWith('/') ||
+      route.startsWith('//') ||
+      [...route].some(character => {
+        const codePoint = character.codePointAt(0)
+        return codePoint <= 0x1f || codePoint === 0x7f
+      })
+    ) return
+
+    const resolved = router.resolve(route)
+    if (resolved.matched.length === 0) return
+    router.push(resolved.fullPath).catch(() => {})
+  })
+
+  router.afterEach((to) => {
+    emitAegisShellEvent('route-change', {
+      route: to.fullPath,
+      title: typeof to.meta.title === 'string' ? to.meta.title : 'AegisTube',
+    })
+  })
+}
 
 export default router

@@ -2,27 +2,40 @@
   <FtSettingsSection
     :title="$t('Settings.Experimental Settings.Experimental Settings')"
   >
-    <p class="experimental-warning">
-      {{ $t('Settings.Experimental Settings.Warning') }}
-    </p>
-    <FtFlexBox>
-      <FtToggleSwitch
-        tooltip-position="top"
-        :label="$t('Settings.Experimental Settings.Replace HTTP Cache')"
-        compact
-        :default-value="replaceHttpCache"
-        :disabled="replaceHttpCacheLoading"
-        :tooltip="$t('Tooltips.Experimental Settings.Replace HTTP Cache')"
-        @change="handleRestartPrompt"
+    <template v-if="isAegisWeb">
+      <div
+        class="experimental-availability"
+        role="status"
+      >
+        <h4>{{ aegisWebAvailabilityTitle }}</h4>
+        <p>
+          {{ aegisWebAvailabilityExplanation }}
+        </p>
+      </div>
+    </template>
+    <template v-else>
+      <p class="experimental-warning">
+        {{ $t('Settings.Experimental Settings.Warning') }}
+      </p>
+      <FtFlexBox>
+        <FtToggleSwitch
+          tooltip-position="top"
+          :label="$t('Settings.Experimental Settings.Replace HTTP Cache')"
+          compact
+          :default-value="replaceHttpCache"
+          :disabled="replaceHttpCacheLoading"
+          :tooltip="$t('Tooltips.Experimental Settings.Replace HTTP Cache')"
+          @change="handleRestartPrompt"
+        />
+      </FtFlexBox>
+      <FtPrompt
+        v-if="showRestartPrompt"
+        :label="$t('Settings[\'The app needs to restart for changes to take effect. Restart and apply change?\']')"
+        :option-names="[$t('Yes, Restart'), $t('Cancel')]"
+        :option-values="['restart', 'cancel']"
+        @click="handleReplaceHttpCache"
       />
-    </FtFlexBox>
-    <FtPrompt
-      v-if="showRestartPrompt"
-      :label="$t('Settings[\'The app needs to restart for changes to take effect. Restart and apply change?\']')"
-      :option-names="[$t('Yes, Restart'), $t('Cancel')]"
-      :option-values="['restart', 'cancel']"
-      @click="handleReplaceHttpCache"
-    />
+    </template>
   </FtSettingsSection>
 </template>
 
@@ -37,6 +50,9 @@ import FtPrompt from '../FtPrompt/FtPrompt.vue'
 const replaceHttpCacheLoading = ref(true)
 const replaceHttpCache = ref(false)
 const showRestartPrompt = ref(false)
+const isAegisWeb = process.env.AEGISOS_WEB_EDITION === true
+const aegisWebAvailabilityTitle = 'Desktop-only controls are not available here'
+const aegisWebAvailabilityExplanation = 'The Replace HTTP Cache control belongs to the installed desktop runtime. AegisTube inside AegisOS does not expose that desktop-only switch.'
 
 onMounted(async () => {
   if (process.env.IS_ELECTRON) {

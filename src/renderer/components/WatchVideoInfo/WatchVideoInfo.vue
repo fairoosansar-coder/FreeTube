@@ -68,7 +68,7 @@
             </component>
           </div>
           <FtSubscribeButton
-            v-if="!hideUnsubscribeButton"
+            v-if="!isAegisTube && !hideUnsubscribeButton"
             :channel-id="channelId"
             :channel-name="channelName"
             :channel-thumbnail="channelThumbnail"
@@ -244,6 +244,7 @@ const emit = defineEmits([
 ])
 
 const USING_ELECTRON = process.env.IS_ELECTRON
+const isAegisTube = process.env.AEGISTUBE_EDITION === true
 
 const { locale, t } = useI18n()
 

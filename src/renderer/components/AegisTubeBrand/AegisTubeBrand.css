@@ -7,11 +7,11 @@
 }
 
 .brandMark {
-  block-size: 34px;
-  border-radius: 8px;
+  block-size: 30px;
+  color: var(--aegis-accent, var(--primary-color));
+  filter: drop-shadow(0 0 10px rgb(var(--aegis-accent-rgb, 255 90 95) / 32%));
   flex: 0 0 auto;
-  inline-size: 34px;
-  object-fit: contain;
+  inline-size: 30px;
 }
 
 .brandCopy {
@@ -22,30 +22,18 @@
 }
 
 .wordmark {
-  font-size: 19px;
-  letter-spacing: -0.45px;
+  font-size: 14px;
+  letter-spacing: 0.1em;
   white-space: nowrap;
 }
 
-.wordmark strong {
-  font-weight: 750;
+.aegis {
+  font-weight: 300;
 }
 
 .tube {
-  color: var(--primary-text-color);
-  text-decoration-color: #25b4ff;
-  text-decoration-line: underline;
-  text-decoration-thickness: 2px;
-  text-underline-offset: 3px;
-}
-
-.attribution {
-  color: var(--tertiary-text-color);
-  font-size: 7px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  white-space: nowrap;
+  color: var(--aegis-accent, var(--primary-color));
+  font-weight: 650;
 }
 
 .hero {
@@ -54,33 +42,21 @@
 }
 
 .hero .brandMark {
-  block-size: clamp(84px, 14vw, 132px);
-  border-radius: clamp(20px, 3vw, 30px);
-  inline-size: clamp(84px, 14vw, 132px);
+  block-size: clamp(84px, 14vw, 124px);
+  inline-size: clamp(84px, 14vw, 124px);
 }
 
 .hero .wordmark {
-  font-size: clamp(36px, 7vw, 68px);
-  letter-spacing: -0.06em;
+  font-size: clamp(34px, 6vw, 58px);
+  letter-spacing: -0.045em;
 }
 
-.hero .attribution {
-  font-size: clamp(9px, 1.4vw, 13px);
-  letter-spacing: 0.15em;
+.hero .aegis,
+.hero .tube {
+  font-weight: 700;
 }
 
 @media only screen and (width <= 680px) {
-  .aegisTubeBrand:not(.hero) .wordmark {
-    font-size: 0;
-  }
-
-  .aegisTubeBrand:not(.hero) .attribution {
-    font-size: 8px;
-    letter-spacing: 0.04em;
-    max-inline-size: 72px;
-    white-space: normal;
-  }
-
   .hero {
     flex-direction: column;
   }

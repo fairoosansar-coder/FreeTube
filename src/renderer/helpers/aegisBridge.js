@@ -3,10 +3,13 @@ const SUPPORTED_BRIDGE_VERSIONS = new Set(['v2', 'v3'])
 const LOCAL_EXTRACTOR_BRIDGE_VERSION = 'v3'
 const OPAQUE_ORIGIN = 'null'
 const pending = new Map()
+const shellEventListeners = new Map()
 let listenerInstalled = false
 let proxyConfigPromise = null
+let proxyConfigRetryAfter = 0
 let parentOrigin = null
 let parentTargetOrigin = null
+let shellContext = null
 
 const bridgeHashQuery = window.location.hash.indexOf('?')
 const bridgeParams = bridgeHashQuery === -1
@@ -64,6 +67,25 @@ function requestId() {
   return globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`
 }
 
+function notifyShellEvent(type, payload) {
+  const listeners = shellEventListeners.get(type)
+  if (!listeners) return
+
+  for (const listener of listeners) {
+    try {
+      listener(payload)
+    } catch (error) {
+      console.error(`AegisTube shell event listener failed for ${type}`, error)
+    }
+  }
+}
+
+function rememberShellContext(value) {
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) return
+  shellContext = Object.freeze({ ...value })
+  notifyShellEvent('shell-context', shellContext)
+}
+
 function installListener() {
   if (listenerInstalled || window.parent === window) return
   listenerInstalled = true
@@ -73,6 +95,19 @@ function installListener() {
     const message = event.data
     if (!message || message.channel !== CHANNEL || typeof message.id !== 'string') return
     if (expectsNativeBridge && message.token !== bridgeToken) return
+
+    const isTrustedShellEvent = message.type === 'shell-context' || message.type === 'navigate'
+    if (isTrustedShellEvent) {
+      if (parentOrigin === null || event.origin !== parentOrigin) return
+      if (message.id.length === 0 || message.id.length > 128) return
+
+      if (message.type === 'shell-context') {
+        rememberShellContext(message.context)
+      } else {
+        notifyShellEvent('navigate', message)
+      }
+      return
+    }
 
     const entry = pending.get(message.id)
     if (!entry || message.type !== entry.responseType) return
@@ -85,6 +120,7 @@ function installListener() {
       parentTargetOrigin = event.origin === OPAQUE_ORIGIN || event.origin === 'tauri://localhost'
         ? '*'
         : event.origin
+      rememberShellContext(message.shellContext)
     } else if (parentOrigin === null || event.origin !== parentOrigin) {
       return
     }
@@ -92,6 +128,57 @@ function installListener() {
     window.clearTimeout(entry.timeout)
     entry.resolve(message)
   })
+}
+
+/**
+ * Subscribe to authenticated, unsolicited shell events from the AegisOS
+ * parent. Unlike request responses, these events are accepted only after the
+ * probe has pinned the exact parent window, origin, and per-frame token.
+ *
+ * @param {'shell-context' | 'navigate'} type
+ * @param {(payload: any) => void} listener
+ * @returns {() => void}
+ */
+export function subscribeToAegisShellEvent(type, listener) {
+  if (type !== 'shell-context' && type !== 'navigate') {
+    throw new Error(`Unsupported AegisOS shell event: ${type}`)
+  }
+  installListener()
+  let listeners = shellEventListeners.get(type)
+  if (!listeners) {
+    listeners = new Set()
+    shellEventListeners.set(type, listeners)
+  }
+  listeners.add(listener)
+  if (type === 'shell-context' && shellContext !== null) {
+    listener(shellContext)
+  }
+  return () => {
+    listeners.delete(listener)
+    if (listeners.size === 0) shellEventListeners.delete(type)
+  }
+}
+
+/**
+ * Emit a one-way lifecycle event to the already authenticated AegisOS parent.
+ * Events intentionally have no response and never create a pending request.
+ *
+ * @param {'app-ready' | 'route-change' | 'boot-status'} type
+ * @param {Record<string, unknown>} [payload]
+ * @returns {boolean}
+ */
+export function emitAegisShellEvent(type, payload = {}) {
+  if (!expectsNativeBridge || parentOrigin === null || window.parent === window) return false
+  if (!['app-ready', 'route-change', 'boot-status'].includes(type)) return false
+
+  window.parent.postMessage({
+    channel: CHANNEL,
+    type,
+    id: requestId(),
+    token: bridgeToken,
+    ...payload,
+  }, parentTargetOrigin)
+  return true
 }
 
 function sendToParent(type, responseType, payload, timeoutMs) {
@@ -153,11 +240,20 @@ async function probeNativeProxyConfig() {
 
 async function getNativeProxyConfig() {
   if (window.parent === window) return null
+  if (proxyConfigRetryAfter > Date.now()) return null
   if (!proxyConfigPromise) {
     proxyConfigPromise = probeNativeProxyConfig()
   }
   const config = await proxyConfigPromise
-  if (config === null) proxyConfigPromise = null
+  if (config === null) {
+    // Avoid replaying the bounded three-attempt handshake for every startup
+    // data source when the parent is unavailable. Later user activity can
+    // retry after this short negative-cache window.
+    proxyConfigRetryAfter = Date.now() + 15_000
+    proxyConfigPromise = null
+  } else {
+    proxyConfigRetryAfter = 0
+  }
   return config
 }
 

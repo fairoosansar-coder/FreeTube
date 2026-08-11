@@ -1,6 +1,8 @@
 <template>
-  <menu
+  <nav
     class="settingsMenu"
+    :class="{ aegisMenu: isAegisTube }"
+    :aria-label="$t('Settings.Settings')"
   >
     <h2 class="header">
       <FontAwesomeIcon
@@ -9,29 +11,54 @@
       />
       {{ $t('Settings.Settings') }}
     </h2>
-    <a
-      v-for="settingsSection in settingsSections"
-      ref="linkRefs"
-      :key="settingsSection.type"
-      class="title"
-      :class="{ active: activeSection === settingsSection.type }"
-      href="javascript:;"
-      :data-section="settingsSection.type"
-      @click.stop="goToSettingsSection"
-      @keydown.enter.stop="goToSettingsSection"
-    >
-      <div class="titleContent">
-        <div class="iconAndTitleText">
-          <FontAwesomeIcon
-            :icon="settingsSection.icon"
-            class="titleIcon"
-          />
-          {{ settingsSection.title }}
-        </div>
-        <div class="titleUnderline" />
-      </div>
-    </a>
-  </menu>
+    <ul class="settingsMenuList">
+      <li
+        v-for="settingsSection in settingsSections"
+        :key="settingsSection.type"
+        class="settingsMenuItem"
+      >
+        <button
+          ref="linkRefs"
+          class="title"
+          :class="{ active: activeSection === settingsSection.type }"
+          type="button"
+          :data-section="settingsSection.type"
+          :aria-current="activeSection === settingsSection.type ? 'page' : null"
+          @click="goToSettingsSection(settingsSection.type)"
+        >
+          <span class="titleContent">
+            <span class="iconAndTitleText">
+              <FontAwesomeIcon
+                :icon="settingsSection.icon"
+                class="titleIcon"
+              />
+              <span>{{ settingsSection.title }}</span>
+            </span>
+            <span class="titleUnderline" />
+          </span>
+        </button>
+      </li>
+      <li
+        v-if="isAegisTube"
+        class="settingsMenuItem aboutMenuItem"
+      >
+        <RouterLink
+          class="title aboutLink"
+          to="/about"
+        >
+          <span class="titleContent">
+            <span class="iconAndTitleText">
+              <FontAwesomeIcon
+                :icon="['fas', 'info-circle']"
+                class="titleIcon"
+              />
+              <span>{{ $t('About.About') }}</span>
+            </span>
+          </span>
+        </RouterLink>
+      </li>
+    </ul>
+  </nav>
 </template>
 
 <script setup>
@@ -50,12 +77,13 @@ defineProps({
 })
 
 const emit = defineEmits(['navigate-to-section'])
+const isAegisTube = process.env.AEGISTUBE_EDITION === true
 
 /**
- * @param {PointerEvent | KeyboardEvent} event
+ * @param {string} sectionType
  */
-function goToSettingsSection(event) {
-  emit('navigate-to-section', event.currentTarget.dataset.section)
+function goToSettingsSection(sectionType) {
+  emit('navigate-to-section', sectionType)
 }
 
 const linkRefs = useTemplateRef('linkRefs')

@@ -9,3 +9,22 @@
   display: grid;
   gap: 4px;
 }
+
+.aegisGrid.grid {
+  gap: 22px 18px;
+  grid-template-columns: repeat(auto-fill, minmax(min(250px, 100%), 1fr));
+}
+
+.aegisGrid.list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-inline-size: 920px;
+}
+
+@media only screen and (width <= 680px) {
+  .aegisGrid.grid {
+    gap: 18px 12px;
+    grid-template-columns: repeat(auto-fill, minmax(min(210px, 100%), 1fr));
+  }
+}

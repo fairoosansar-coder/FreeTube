@@ -1,9 +1,9 @@
 <template>
-  <div>
+  <div :class="{ aegisView: isAegisTube }">
     <FtCard
       class="card"
     >
-      <h2>
+      <h2 class="pageTitle">
         <FontAwesomeIcon
           :icon="['fas', 'history']"
           class="headingIcon"
@@ -99,6 +99,7 @@ import store from '../../store'
 import { ctrlFHandler, debounce, getIconForSortPreference } from '../../helpers/utils'
 
 const { t } = useI18n()
+const isAegisTube = process.env.AEGISTUBE_EDITION === true
 const route = useRoute()
 const router = useRouter()
 
