@@ -1,0 +1,83 @@
+name: Deploy AegisTube Web
+
+on:
+  push:
+    branches: [aegisos-web-v0.25.1]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: aegistube-web-pages
+  cancel-in-progress: true
+
+jobs:
+  build-and-publish:
+    if: github.ref == 'refs/heads/aegisos-web-v0.25.1'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Clone exact source without external actions
+        run: |
+          test "${GITHUB_REF}" = "refs/heads/aegisos-web-v0.25.1"
+          git init source
+          git -C source remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          git -C source fetch --no-tags --depth=1 origin "${GITHUB_SHA}"
+          git -C source checkout --detach FETCH_HEAD
+          test "$(git -C source rev-parse HEAD)" = "${GITHUB_SHA}"
+
+      - name: Select bundled Node.js 24 and install pinned pnpm
+        run: |
+          node_binary="$(find "${RUNNER_TOOL_CACHE}/node" -path '*/24.*/x64/bin/node' -type f -perm -111 | sort -V | tail -1)"
+          test -n "${node_binary}"
+          node_directory="$(dirname "${node_binary}")"
+          echo "${node_directory}" >> "${GITHUB_PATH}"
+          export PATH="${node_directory}:${PATH}"
+          node -e "if (Number(process.versions.node.split('.')[0]) !== 24) process.exit(1)"
+          npm install --global --prefix "${RUNNER_TEMP}/pnpm" pnpm@10.34.5
+          echo "${RUNNER_TEMP}/pnpm/bin" >> "${GITHUB_PATH}"
+
+      - name: Build AegisTube Web and corresponding source
+        working-directory: source
+        env:
+          AEGISOS_PUBLIC_PATH: /FreeTube/
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm run pack:web
+          mkdir -p dist/web/source
+          git archive --format=tar.gz \
+            --prefix="aegistube-web-${GITHUB_SHA}/" \
+            -o "dist/web/source/aegistube-web-${GITHUB_SHA}.tar.gz" \
+            "${GITHUB_SHA}"
+          cp LICENSE AEGISOS-MODIFICATIONS.md SOURCE.md THIRD_PARTY_NOTICES.md dist/web/
+          pnpm licenses list --json > dist/web/THIRD_PARTY_LICENSES.json
+          node _scripts/writeAegisBuildInfo.mjs
+
+      - name: Verify the project-path artifact and source identity
+        working-directory: source
+        run: |
+          web_bundle="$(find dist/web -maxdepth 1 -type f -name 'web.*.js' -print -quit)"
+          test -n "${web_bundle}"
+          test -s "${web_bundle}"
+          grep -Eq 'src="/FreeTube/web\.[^"]+\.js"' dist/web/index.html
+          grep -Fq 'n.p="/FreeTube/"' "${web_bundle}"
+          node -e "const i=require('./dist/web/build-info.json'); if(i.revision!==process.env.GITHUB_SHA || i.source!=='https://github.com/fairoosansar-coder/FreeTube/tree/'+process.env.GITHUB_SHA) process.exit(1)"
+          test -s "dist/web/source/aegistube-web-${GITHUB_SHA}.tar.gz"
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload GitHub Pages artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: source/dist/web
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

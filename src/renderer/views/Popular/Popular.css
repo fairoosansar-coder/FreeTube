@@ -8,8 +8,183 @@
   color: var(--primary-color);
 }
 
+.aegisEmptyState {
+  align-items: center;
+  background: color-mix(in srgb, var(--card-bg-color) 82%, #000);
+  border: 1px solid color-mix(in srgb, var(--primary-color) 24%, transparent);
+  border-radius: 14px;
+  color: var(--tertiary-text-color);
+  display: flex;
+  flex-direction: column;
+  margin-block: 36px 12px;
+  margin-inline: auto;
+  max-inline-size: 520px;
+  padding-block: 32px;
+  padding-inline: 32px;
+  text-align: center;
+}
+
+.aegisEmptyIcon {
+  color: var(--primary-color);
+  font-size: 26px;
+}
+
+.aegisEmptyState h3 {
+  color: var(--primary-text-color);
+  margin-block: 14px 6px;
+}
+
+.aegisEmptyState p {
+  line-height: 1.6;
+  margin: 0;
+}
+
+.aegisRetryButton {
+  background: var(--primary-color);
+  border: 0;
+  border-radius: 9px;
+  color: #171006;
+  cursor: pointer;
+  font-weight: 700;
+  margin-block-start: 18px;
+  padding-block: 10px;
+  padding-inline: 18px;
+}
+
+.aegisRetryButton:hover {
+  filter: brightness(1.08);
+}
+
+.aegisView .card {
+  background: transparent;
+  box-sizing: border-box;
+  box-shadow: none;
+  inline-size: 100%;
+  margin: 0;
+  padding-block: 18px 48px;
+  padding-inline: 26px;
+}
+
+.aegisView .pageTitle {
+  color: #f2f4f8;
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin-block: 0 16px;
+}
+
+.aegisView .aegisHomeHeading {
+  align-items: center;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+}
+
+.aegisView .aegisViewButtons,
+.aegisView .aegisSortChips {
+  align-items: center;
+  display: flex;
+  gap: 6px;
+}
+
+.aegisView .aegisViewButtons {
+  flex: none;
+  margin-block-end: 16px;
+}
+
+.aegisView .aegisSortChips {
+  border-block-end: 1px solid var(--aegis-hairline);
+  flex-wrap: wrap;
+  margin-block-end: 20px;
+  padding-block-end: 13px;
+}
+
+.aegisView .aegisIconButton,
+.aegisView .aegisSortChip {
+  background: rgb(255 255 255 / 4%);
+  border: 1px solid var(--aegis-hairline);
+  color: #9aa3b0;
+  cursor: pointer;
+  transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease;
+}
+
+.aegisView .aegisIconButton {
+  align-items: center;
+  block-size: 34px;
+  border-radius: 8px;
+  display: inline-flex;
+  inline-size: 34px;
+  justify-content: center;
+  padding: 0;
+}
+
+.aegisView .aegisSortChip {
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 650;
+  padding-block: 7px;
+  padding-inline: 12px;
+}
+
+.aegisView .aegisIconButton:hover,
+.aegisView .aegisIconButton:focus-visible,
+.aegisView .aegisSortChip:hover,
+.aegisView .aegisSortChip:focus-visible {
+  border-color: rgb(var(--aegis-accent-rgb) / 28%);
+  color: #eef1f5;
+}
+
+.aegisView .aegisIconButton.active,
+.aegisView .aegisSortChip.active {
+  background: var(--aegis-accent);
+  border-color: var(--aegis-accent);
+  box-shadow: 0 7px 20px rgb(var(--aegis-accent-rgb) / 18%);
+  color: var(--aegis-on-accent);
+}
+
+.aegisView .headingIcon {
+  display: none;
+}
+
+.aegisView .aegisEmptyState {
+  backdrop-filter: blur(22px);
+  background: var(--aegis-glass);
+  border-color: var(--aegis-hairline);
+  border-radius: 12px;
+  box-shadow: 0 18px 44px rgb(0 0 0 / 28%);
+}
+
+.aegisView .aegisRetryButton {
+  background: var(--aegis-accent);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgb(var(--aegis-accent-rgb) / 20%);
+  color: var(--aegis-on-accent);
+}
+
 @media only screen and (width <= 680px) {
   .card {
     inline-size: 90%;
+  }
+
+  .aegisView .card {
+    inline-size: 100%;
+    padding-block-start: 14px;
+    padding-inline: 14px;
+  }
+
+  .aegisView .aegisHomeHeading {
+    align-items: flex-start;
+  }
+
+  .aegisView .aegisSortChips {
+    flex-wrap: nowrap;
+    margin-inline: -4px;
+    overflow-x: auto;
+    padding-inline: 4px;
+    scrollbar-width: none;
+  }
+
+  .aegisView .aegisSortChip {
+    flex: none;
   }
 }

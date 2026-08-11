@@ -15,6 +15,11 @@ const {
 } = require('./getShakaLocales')
 
 const isDevMode = process.env.NODE_ENV === 'development'
+// Modified 2026-08-06 for the AegisOS web edition. Keep the deployed
+// revision visible to the interactive UI so every user can reach the exact
+// corresponding source for this AGPL build.
+const aegisForkCommit = process.env.GITHUB_SHA || 'development'
+const publicPath = process.env.AEGISOS_PUBLIC_PATH || '/'
 
 const { version: swiperVersion } = JSON.parse(fs.readFileSync(path.join(__dirname, '../node_modules/swiper/package.json')))
 
@@ -28,10 +33,12 @@ const config = {
   },
   output: {
     path: path.join(__dirname, '../dist/web'),
-    filename: '[name].js',
+    filename: isDevMode ? '[name].js' : '[name].[contenthash].js',
+    chunkFilename: isDevMode ? '[id].js' : '[id].[contenthash].js',
+    publicPath,
+    clean: true,
   },
   externals: {
-    'youtubei.js': '{}',
     googlevideo: '{}'
   },
   module: {
@@ -134,7 +141,11 @@ const config = {
       'process.platform': 'undefined',
       'process.env.IS_ELECTRON': false,
       'process.env.IS_ELECTRON_MAIN': false,
-      'process.env.SUPPORTS_LOCAL_API': false,
+      'process.env.SUPPORTS_LOCAL_API': true,
+      'process.env.AEGISTUBE_EDITION': true,
+      'process.env.AEGISOS_WEB_EDITION': true,
+      'process.env.AEGISOS_PRODUCT_NAME': JSON.stringify('AegisTube'),
+      'process.env.AEGISOS_FORK_COMMIT': JSON.stringify(aegisForkCommit),
       __VUE_OPTIONS_API__: 'true',
       __VUE_PROD_DEVTOOLS__: 'false',
       __VUE_PROD_HYDRATION_MISMATCH_DETAILS__: 'false',
@@ -173,6 +184,8 @@ const config = {
     alias: {
       DB_HANDLERS_ELECTRON_RENDERER_OR_WEB$: path.resolve(__dirname, '../src/datastores/handlers/web.js'),
 
+      'youtubei.js$': 'youtubei.js/web',
+
       // change to "shaka-player.ui-es2021.debug.js" to get debug logs (update jsconfig to get updated types)
       'shaka-player$': 'shaka-player/dist/shaka-player.ui-es2021.js',
 
@@ -202,15 +215,11 @@ config.plugins.push(
   new CopyWebpackPlugin({
     patterns: [
       {
-        from: path.join(__dirname, '../static/pwabuilder-sw.js'),
-        to: path.join(__dirname, '../dist/web/pwabuilder-sw.js'),
-      },
-      {
         from: path.join(__dirname, '../static'),
         to: path.join(__dirname, '../dist/web/static'),
         globOptions: {
           dot: true,
-          ignore: ['**/.*', '**/locales/**', '**/pwabuilder-sw.js', '**/dashFiles/**', '**/storyboards/**'],
+          ignore: ['**/.*', '**/locales/**', '**/pwabuilder-sw.js', '**/manifest.json', '**/dashFiles/**', '**/storyboards/**'],
         },
       },
       {

@@ -1832,7 +1832,8 @@ export default defineComponent({
      */
     getTranslatedLocaleCaption: function (captions, userLanguages) {
       // check if we can translate to the users language
-      const translationLanguage = captions.translation_languages.find(language => userLanguages.has(language.language_code))
+      // Android player responses may omit this optional list even when caption tracks exist.
+      const translationLanguage = captions.translation_languages?.find(language => userLanguages.has(language.language_code))
 
       let translationName, translationCode
       // otherwise just fallback to the FreeTube display language and hope that YouTube will be able to handle it

@@ -33,8 +33,68 @@
   color: var(--primary-color);
 }
 
+.aegisView .card {
+  background: transparent;
+  box-sizing: border-box;
+  box-shadow: none;
+  inline-size: 100%;
+  margin: 0;
+  padding-block: 18px 48px;
+  padding-inline: 26px;
+}
+
+.aegisView .pageTitle {
+  color: #f2f4f8;
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin-block: 0 16px;
+}
+
+.aegisView .headingIcon {
+  display: none;
+}
+
+.aegisView .optionsRow {
+  border-block-end: 1px solid var(--aegis-hairline);
+  grid-template-columns: minmax(0, 1fr) auto;
+  margin-block: 10px 8px;
+  padding-block-end: 12px;
+}
+
+.aegisView .sortSelect {
+  min-inline-size: 210px;
+}
+
+.aegisView .message {
+  background: rgb(255 255 255 / 4%);
+  box-sizing: border-box;
+  border: 1px solid var(--aegis-hairline);
+  border-radius: 12px;
+  color: #8891a0;
+  inline-size: 100%;
+  padding: 22px;
+  text-align: center;
+}
+
 @media only screen and (width <= 680px) {
   .card {
     inline-size: 90%;
+  }
+
+  .aegisView .card {
+    inline-size: 100%;
+    padding-block-start: 14px;
+    padding-inline: 14px;
+  }
+
+  .aegisView .optionsRow {
+    gap: 10px;
+    grid-template-columns: 1fr;
+  }
+
+  .aegisView .sortSelect {
+    margin-inline-start: 0;
+    min-inline-size: 0;
   }
 }

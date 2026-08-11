@@ -2,6 +2,47 @@
   <FtSettingsSection
     :title="$t('Settings.Theme Settings.Theme Settings')"
   >
+    <section
+      v-if="isAegisTube"
+      class="aegisSouls"
+      aria-labelledby="aegis-souls-title"
+    >
+      <div class="soulsHeading">
+        <div>
+          <h3 id="aegis-souls-title">
+            {{ soulsTitle }}
+          </h3>
+          <p>{{ soulsIntroduction }}</p>
+        </div>
+        <span class="activeSoul">{{ activeSoulLabel }}</span>
+      </div>
+      <div
+        class="soulGrid"
+        role="group"
+        :aria-label="soulsGroupLabel"
+      >
+        <button
+          v-for="soul in aegisSouls"
+          :key="soul.key"
+          class="soulOption"
+          :class="{ active: aegisAccentKey === soul.key }"
+          :data-soul="soul.key"
+          type="button"
+          :aria-pressed="aegisAccentKey === soul.key"
+          :aria-label="`${soul.label}: ${soul.description}`"
+          @click="updateAegisAccentKey(soul.key)"
+        >
+          <span
+            class="soulSwatch"
+            aria-hidden="true"
+          />
+          <span class="soulCopy">
+            <strong>{{ soul.label }}</strong>
+            <span>{{ soul.description }}</span>
+          </span>
+        </button>
+      </div>
+    </section>
     <div class="switchColumnGrid">
       <div class="switchColumn">
         <FtToggleSwitch
@@ -53,7 +94,7 @@
       </FtFlexBox>
       <br>
     </template>
-    <FtFlexBox>
+    <FtFlexBox v-if="!isAegisTube">
       <FtSelect
         :placeholder="$t('Settings.Theme Settings.Base Theme.Base Theme')"
         :value="baseTheme"
@@ -108,6 +149,7 @@ import store from '../store/index'
 
 import { colors } from '../helpers/colors'
 import { useColorTranslations } from '../composables/colors'
+import { AEGIS_ACCENT_KEYS } from '../store/modules/settings'
 
 const { t } = useI18n()
 
@@ -172,6 +214,53 @@ const baseThemeNames = computed(() => [
 
 const COLOR_VALUES = colors.map(color => color.name)
 const colorNames = useColorTranslations()
+
+const isAegisTube = process.env.AEGISTUBE_EDITION === true
+const soulsTitle = 'AegisTube Souls'
+const soulsIntroduction = 'Choose the energy that flows through the entire AegisTube shell.'
+const soulsGroupLabel = 'AegisTube accent Souls'
+
+const soulDetails = {
+  ember: {
+    label: 'Ember',
+    description: 'Warm coral energy and kinetic glow',
+  },
+  wraith: {
+    label: 'Wraith',
+    description: 'Electric blue clarity with a cyan lift',
+  },
+  moss: {
+    label: 'Moss',
+    description: 'Calm green balance and living contrast',
+  },
+  'ashen-gold': {
+    label: 'Ashen Gold',
+    description: 'Refined gold warmth with quiet depth',
+  },
+  wisp: {
+    label: 'Wisp',
+    description: 'Violet imagination and soft luminescence',
+  },
+}
+
+const aegisSouls = AEGIS_ACCENT_KEYS.map(key => ({
+  key,
+  ...soulDetails[key],
+}))
+
+/** @type {import('vue').ComputedRef<string>} */
+const aegisAccentKey = computed(() => store.getters.getAegisAccentKey)
+
+const activeSoulLabel = computed(() => {
+  return soulDetails[aegisAccentKey.value]?.label ?? soulDetails.ember.label
+})
+
+/**
+ * @param {string} value
+ */
+function updateAegisAccentKey(value) {
+  store.dispatch('updateAegisAccentKey', value)
+}
 
 /** @type {import('vue').ComputedRef<boolean>} */
 const barColor = computed(() => {
@@ -323,3 +412,5 @@ function handleSmoothScrolling(value) {
   }
 }
 </script>
+
+<style scoped lang="scss" src="./ThemeSettings.scss" />

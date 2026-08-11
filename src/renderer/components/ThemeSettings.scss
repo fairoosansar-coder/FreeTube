@@ -1,0 +1,196 @@
+.aegisSouls {
+  box-sizing: border-box;
+  margin-block: 10px 24px;
+  margin-inline: 20px;
+  padding: 18px;
+  max-inline-size: 900px;
+  border: 1px solid rgb(var(--aegis-accent-rgb) / 22%);
+  border-radius: 14px;
+  background:
+    radial-gradient(circle at 12% 0%, rgb(var(--aegis-accent-rgb) / 13%), transparent 42%),
+    rgb(255 255 255 / 2.5%);
+  box-shadow: inset 0 1px rgb(255 255 255 / 4%);
+}
+
+.soulsHeading {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 24px;
+  margin-block-end: 16px;
+
+  h3 {
+    margin: 0;
+    color: var(--primary-text-color);
+    font-size: 17px;
+    font-weight: 650;
+    letter-spacing: 0.01em;
+  }
+
+  p {
+    margin-block: 5px 0;
+    color: var(--tertiary-text-color);
+    font-size: 12px;
+    line-height: 1.45;
+  }
+}
+
+.activeSoul {
+  flex: none;
+  padding-block: 5px;
+  padding-inline: 10px;
+  color: var(--aegis-accent-light);
+  border: 1px solid rgb(var(--aegis-accent-rgb) / 30%);
+  border-radius: 999px;
+  background-color: rgb(var(--aegis-accent-rgb) / 10%);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.soulGrid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(108px, 1fr));
+  gap: 9px;
+}
+
+.soulOption {
+  appearance: none;
+  display: flex;
+  min-inline-size: 0;
+  align-items: center;
+  gap: 10px;
+  padding-block: 10px;
+  padding-inline: 10px;
+  color: var(--secondary-text-color);
+  border: 1px solid rgb(255 255 255 / 7%);
+  border-radius: 11px;
+  background-color: rgb(255 255 255 / 3%);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+  transition: border-color 150ms ease, background-color 150ms ease, transform 150ms ease;
+
+  &:hover {
+    border-color: rgb(255 255 255 / 16%);
+    background-color: rgb(255 255 255 / 6%);
+    transform: translateY(-1px);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--aegis-accent-light);
+    outline-offset: 2px;
+  }
+
+  &.active {
+    color: var(--primary-text-color);
+    border-color: rgb(var(--aegis-accent-rgb) / 48%);
+    background-color: rgb(var(--aegis-accent-rgb) / 10%);
+    box-shadow: inset 0 0 0 1px rgb(var(--aegis-accent-rgb) / 12%);
+  }
+}
+
+.soulSwatch {
+  position: relative;
+  flex: none;
+  inline-size: 34px;
+  block-size: 34px;
+  border: 2px solid rgb(255 255 255 / 20%);
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--soul-light), var(--soul-dark));
+  box-shadow: 0 5px 15px rgb(var(--soul-rgb) / 22%);
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 8px;
+    opacity: 0;
+    border: solid var(--soul-check-color, #fff);
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg) translate(-1px, -2px);
+  }
+}
+
+.soulOption.active .soulSwatch {
+  border-color: var(--soul-light);
+  box-shadow: 0 0 0 3px rgb(var(--soul-rgb) / 18%), 0 7px 20px rgb(var(--soul-rgb) / 30%);
+
+  &::after {
+    opacity: 1;
+  }
+}
+
+.soulCopy {
+  display: flex;
+  min-inline-size: 0;
+  flex-direction: column;
+  gap: 3px;
+
+  strong {
+    color: inherit;
+    font-size: 11px;
+    font-weight: 700;
+  }
+
+  span {
+    color: var(--tertiary-text-color);
+    font-size: 9.5px;
+    line-height: 1.35;
+  }
+}
+
+.soulOption[data-soul='ember'] {
+  --soul-light: #ff6b6b;
+  --soul-dark: #8c1216;
+  --soul-rgb: 232 38 43;
+}
+
+.soulOption[data-soul='wraith'] {
+  --soul-light: #8ff6ff;
+  --soul-dark: #0a4fd6;
+  --soul-rgb: 46 143 255;
+  --soul-check-color: #071321;
+}
+
+.soulOption[data-soul='moss'] {
+  --soul-light: #7ef2c0;
+  --soul-dark: #0f9e6a;
+  --soul-rgb: 47 203 140;
+  --soul-check-color: #071811;
+}
+
+.soulOption[data-soul='ashen-gold'] {
+  --soul-light: #f4de9b;
+  --soul-dark: #b9821b;
+  --soul-rgb: 217 165 54;
+  --soul-check-color: #1b1406;
+}
+
+.soulOption[data-soul='wisp'] {
+  --soul-light: #c9a6ff;
+  --soul-dark: #6c3bd6;
+  --soul-rgb: 155 107 255;
+}
+
+@media only screen and (width <= 1000px) {
+  .soulGrid {
+    grid-template-columns: repeat(2, minmax(160px, 1fr));
+  }
+}
+
+@media only screen and (width <= 560px) {
+  .aegisSouls {
+    margin-inline: 12px;
+    padding: 14px;
+  }
+
+  .soulsHeading {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .soulGrid {
+    grid-template-columns: 1fr;
+  }
+}

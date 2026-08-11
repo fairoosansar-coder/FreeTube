@@ -3,6 +3,11 @@
   gap: 20px;
 }
 
+.settingsContent {
+  min-inline-size: 0;
+  flex: 1 1 auto;
+}
+
 .settingsSections,
 .switchRow {
   overflow-x: hidden;
@@ -26,12 +31,148 @@
   scroll-margin-top: 24vh;
 }
 
+.mobileReturnBar {
+  display: flex;
+  align-items: center;
+}
+
+/* AegisTube's shell uses a single category workspace. The regular FreeTube
+ * edition retains the long, scrollable settings document above. */
+.settingsPage.aegisTubeSettings {
+  align-items: stretch;
+  block-size: 100%;
+  box-sizing: border-box;
+  gap: 0;
+  margin: 0;
+  min-inline-size: 0;
+  inline-size: 100%;
+  max-block-size: 100%;
+  min-block-size: 0;
+  overflow: hidden;
+  border: 1px solid var(--aegis-hairline, rgb(255 255 255 / 7%));
+  border-radius: 16px;
+  background:
+    radial-gradient(circle at 84% -8%, rgb(var(--aegis-accent-rgb, 232 38 43) / 9%), transparent 34%),
+    var(--aegis-glass, rgb(14 18 27 / 82%));
+  box-shadow:
+    0 22px 56px rgb(0 0 0 / 24%),
+    inset 0 1px 0 rgb(255 255 255 / 3%);
+  backdrop-filter: blur(22px) saturate(125%);
+}
+
+.aegisTubeSettings .settingsContent {
+  box-sizing: border-box;
+  flex: 1 1 0%;
+  min-block-size: 0;
+  padding-block: 24px 30px;
+  padding-inline: clamp(22px, 3vw, 42px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+.aegisTubeSettings .settingsSections {
+  overflow: visible;
+  max-inline-size: 960px;
+  inline-size: 100%;
+  margin-inline: 0 auto;
+}
+
+.aegisSettingsToolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 14px;
+  justify-content: space-between;
+  max-inline-size: 960px;
+  min-block-size: 38px;
+  padding-block-end: 15px;
+  margin-block-end: 20px;
+  border-block-end: 1px solid var(--aegis-hairline, rgb(255 255 255 / 7%));
+}
+
+.aegisSettingsToolbar .keyboardShortcutsButton {
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgb(var(--aegis-accent-rgb, 232 38 43) / 16%);
+  font-size: 11.5px;
+  font-weight: 700;
+  margin: 0;
+  padding-block: 9px;
+  padding-inline: 13px;
+}
+
+.aegisSettingsToolbar .settingsToggle {
+  padding: 0;
+  margin: 0;
+}
+
+.aegisTubeSettings .aegisSettingsPanel {
+  inline-size: 100%;
+  min-inline-size: 0;
+}
+
+.aegisTubeSettings :deep(.settingsSection) {
+  inline-size: 100%;
+}
+
+.aegisTubeSettings :deep(.sectionBody) {
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.aegisTubeSettings :deep(.sectionTitle) {
+  margin-block: 0 18px;
+  margin-inline: 0;
+  color: var(--primary-text-color);
+  font-size: 17px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  outline: none;
+}
+
+.aegisTubeSettings :deep(.sectionTitle:focus-visible) {
+  border-radius: 5px;
+  box-shadow: var(--aegis-focus-ring, 0 0 0 3px rgb(232 38 43 / 24%));
+}
+
+.aegisTubeSettings :deep(.sectionBody > div) {
+  padding-inline: 0;
+}
+
+.aegisTubeSettings :deep(.switchColumnGrid),
+.aegisTubeSettings :deep(.switchGrid) {
+  max-inline-size: 760px;
+  justify-content: stretch;
+  column-gap: 28px;
+}
+
+.aegisTubeSettings :deep(.ft-flex-box) {
+  max-inline-size: 820px;
+}
+
+.aegisTubeSettings :deep(.groupTitle) {
+  margin-block: 22px 10px;
+  color: var(--tertiary-text-color);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.055em;
+  text-align: start;
+  text-transform: uppercase;
+}
+
+.aegisSettingsPanel :deep(.settingsSection + .settingsSection) {
+  padding-block-start: 28px;
+  margin-block-start: 28px;
+  border-block-start: 1px solid var(--aegis-hairline, rgb(255 255 255 / 7%));
+}
+
 @media only screen and (width >= 1015px) {
   .section + .section {
     padding-block-start: 20px;
   }
 
-  .settingsSections:last-child {
+  .settingsPage:not(.aegisTubeSettings) .settingsSections:last-child {
     /* Add enough blank space to have the last setting section be active on the FtSettingsMenu when scrolled to */
     margin-block-end: calc(76vh - 150px);
   }
@@ -82,5 +223,96 @@
 
   .returnToMenuMobileIcon {
     inline-size: 1em;
+  }
+
+  .settingsPage.aegisTubeSettings {
+    block-size: 100%;
+    gap: 0;
+    max-block-size: 100%;
+    min-block-size: 0;
+    overflow: hidden;
+    border-radius: 14px;
+  }
+
+  .aegisTubeSettings .mobileReturnBar {
+    box-sizing: border-box;
+    flex: 0 0 54px;
+    position: sticky;
+    z-index: 3;
+    inset-block-start: 0;
+    inline-size: 100%;
+    min-block-size: 54px;
+    padding-inline: 12px 18px;
+    border-block-end: 1px solid var(--aegis-hairline, rgb(255 255 255 / 7%));
+    background: var(--aegis-glass, rgb(14 18 27 / 92%));
+    backdrop-filter: blur(18px);
+  }
+
+  .aegisTubeSettings .returnToMenuMobileButton {
+    display: grid;
+    place-items: center;
+    inline-size: 40px;
+    block-size: 40px;
+    padding: 0;
+    margin: 0;
+    border-radius: 10px;
+    color: var(--primary-text-color);
+    font-size: 22px;
+  }
+
+  .aegisTubeSettings .returnToMenuMobileButton:hover {
+    background: rgb(var(--aegis-accent-rgb, 232 38 43) / 10%);
+    color: var(--aegis-accent-light, var(--primary-color));
+  }
+
+  .mobileSectionTitle {
+    overflow: hidden;
+    margin-inline-start: 8px;
+    color: var(--primary-text-color);
+    font-size: 15px;
+    font-weight: 650;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .aegisTubeSettings .settingsContent {
+    flex: 1 1 0%;
+    min-block-size: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-block: 20px 34px;
+    padding-inline: clamp(16px, 4vw, 28px);
+    scrollbar-gutter: stable;
+  }
+
+  .aegisTubeSettings .settingsSections {
+    overflow: visible;
+    margin-block-end: 0;
+  }
+
+  .aegisTubeSettings :deep(.sectionTitle) {
+    font-size: 16px;
+  }
+}
+
+@media only screen and (width <= 640px) {
+  .settingsPage.aegisTubeSettings {
+    border-inline: 0;
+    border-radius: 0;
+  }
+
+  .aegisTubeSettings .settingsContent {
+    padding-inline: 14px;
+  }
+
+  .aegisSettingsToolbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .aegisTubeSettings :deep(.switchColumnGrid),
+  .aegisTubeSettings :deep(.switchGrid) {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: 2px;
   }
 }

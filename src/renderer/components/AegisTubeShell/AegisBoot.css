@@ -1,0 +1,224 @@
+@keyframes aegis-boot-orbit {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes aegis-boot-breathe {
+  50% {
+    opacity: 0.68;
+    transform: scale(1.03);
+  }
+}
+
+@keyframes aegis-boot-cursor {
+  50% {
+    opacity: 0.25;
+  }
+}
+
+.aegisBoot {
+  align-items: center;
+  background:
+    radial-gradient(circle at 20% 10%, rgb(var(--aegis-accent-rgb, 255 90 95) / 18%), transparent 38%),
+    radial-gradient(circle at 82% 84%, rgb(60 104 220 / 12%), transparent 42%),
+    #03040a;
+  block-size: 100vh;
+  color: #eef1f5;
+  display: flex;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
+  inline-size: 100%;
+  justify-content: center;
+  overflow: hidden;
+  position: relative;
+}
+
+.aurora {
+  animation: aegis-boot-breathe 9s ease-in-out infinite;
+  background: radial-gradient(circle, rgb(var(--aegis-accent-rgb, 255 90 95) / 18%), transparent 62%);
+  block-size: min(72vw, 760px);
+  filter: blur(48px);
+  inline-size: min(72vw, 760px);
+  inset-block-start: 8%;
+  position: absolute;
+}
+
+.bootPanel {
+  align-items: center;
+  background: rgb(14 15 22 / 62%);
+  border: 1px solid rgb(255 255 255 / 7%);
+  border-radius: 24px;
+  box-shadow: 0 38px 90px rgb(0 0 0 / 42%);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  inline-size: min(440px, calc(100vw - 40px));
+  min-block-size: 470px;
+  padding-block: 52px 38px;
+  padding-inline: 38px;
+  position: relative;
+}
+
+.bootMarkWrap {
+  align-items: center;
+  block-size: 124px;
+  display: flex;
+  inline-size: 124px;
+  justify-content: center;
+  position: relative;
+}
+
+.orbit {
+  animation: aegis-boot-orbit 3.2s linear infinite;
+  border: 2px solid rgb(255 255 255 / 8%);
+  border-block-start-color: var(--aegis-accent, #ff5a5f);
+  border-radius: 50%;
+  inset: 0;
+  position: absolute;
+}
+
+.orbitSecondary {
+  animation-direction: reverse;
+  animation-duration: 5.4s;
+  border-block-end-color: rgb(var(--aegis-accent-rgb, 255 90 95) / 42%);
+  inset: 9px;
+}
+
+.bootMark {
+  block-size: 66px;
+  color: var(--aegis-accent, #ff5a5f);
+  filter: drop-shadow(0 0 20px rgb(var(--aegis-accent-rgb, 255 90 95) / 45%));
+  inline-size: 66px;
+}
+
+.bootWordmark {
+  font-size: 16px;
+  font-weight: 430;
+  letter-spacing: 0.18em;
+  margin-block-start: 22px;
+}
+
+.bootWordmark span {
+  color: var(--aegis-accent, #ff5a5f);
+  font-weight: 720;
+}
+
+.bootCaption {
+  color: #737c8b;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  margin-block: 8px 0;
+}
+
+.bootLog {
+  align-self: stretch;
+  border-block-start: 1px solid rgb(255 255 255 / 6%);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-block-start: 34px;
+  min-block-size: 112px;
+  padding-block-start: 20px;
+}
+
+.bootLine {
+  color: #626b7a;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.bootLine span {
+  color: var(--aegis-accent, #ff5a5f);
+  display: inline-block;
+  inline-size: 18px;
+}
+
+.bootLine.completed {
+  color: #7c8594;
+}
+
+.bootLine.current {
+  color: #cdd2da;
+}
+
+.bootLine.current span {
+  animation: aegis-boot-cursor 1.1s ease-in-out infinite;
+}
+
+.bootError {
+  color: #c7ccd5;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.bootError p {
+  margin-block: 0 14px;
+}
+
+.bootError button {
+  background: var(--aegis-accent, #ff5a5f);
+  border: 0;
+  border-radius: 8px;
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 650;
+  padding-block: 8px;
+  padding-inline: 14px;
+}
+
+.hasError .orbit {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aurora,
+  .orbit,
+  .bootLine.current span {
+    animation: none;
+  }
+}
+
+:global(body[data-aegis-reduced-motion='true']) .aurora,
+:global(body[data-aegis-reduced-motion='true']) .orbit,
+:global(body[data-aegis-reduced-motion='true']) .bootLine.current span {
+  animation: none;
+}
+
+@media only screen and (width <= 520px) {
+  .bootPanel {
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+    min-block-size: 0;
+    padding-inline: 24px;
+  }
+}
+
+@media only screen and (height <= 540px) {
+  .bootPanel {
+    min-block-size: 0;
+    padding-block: 20px;
+  }
+
+  .bootMarkWrap {
+    block-size: 88px;
+    inline-size: 88px;
+  }
+
+  .bootMark {
+    block-size: 46px;
+    inline-size: 46px;
+  }
+
+  .bootWordmark {
+    margin-block-start: 12px;
+  }
+
+  .bootLog {
+    margin-block-start: 18px;
+    min-block-size: 82px;
+    padding-block-start: 14px;
+  }
+}

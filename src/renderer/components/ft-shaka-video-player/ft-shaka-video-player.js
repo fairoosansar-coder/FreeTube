@@ -245,6 +245,21 @@ export default defineComponent({
       }
     })
 
+    function handleAegisPowerStatsVisibility(event) {
+      if (!process.env.AEGISTUBE_EDITION || typeof event?.detail?.enabled !== 'boolean') {
+        return
+      }
+
+      showStats.value = event.detail.enabled
+      if (showStats.value && player !== null) {
+        gatherInitialStatsValues()
+      }
+
+      events.dispatchEvent(new CustomEvent('setStatsVisibility', {
+        detail: showStats.value
+      }))
+    }
+
     const playerDimensions = computed(() => ({
       width: playerWidth.value,
       height: playerHeight.value
@@ -1707,6 +1722,13 @@ export default defineComponent({
     // #region screenshots
 
     async function takeScreenshot() {
+      // The AegisOS progressive fallback deliberately uses native no-CORS
+      // media playback. Drawing that stream to a canvas would throw because
+      // the browser correctly treats the canvas as tainted.
+      if (activeLegacyFormat.value?.aegisDirectNoCors === true) {
+        return
+      }
+
       const video_ = video.value
 
       const width = video_.videoWidth
@@ -1889,6 +1911,11 @@ export default defineComponent({
 
         activeLegacyFormat.value = event.detail.format
         try {
+          if (format.aegisDirectNoCors === true) {
+            video.value.removeAttribute('crossorigin')
+          } else {
+            video.value.crossOrigin = 'anonymous'
+          }
           await player.load(format.url, playbackPosition, format.mimeType)
         } catch (error) {
           handleError(error, 'setLegacyFormat', event.detail)
@@ -2727,6 +2754,10 @@ export default defineComponent({
     const initLoadWaitTimeToastAC = new AbortController()
 
     onMounted(async () => {
+      if (process.env.AEGISTUBE_EDITION) {
+        window.addEventListener('aegistube:power-stats', handleAegisPowerStatsVisibility)
+      }
+
       const videoElement = video.value
 
       const volume = sessionStorage.getItem('volume')
@@ -2789,7 +2820,9 @@ export default defineComponent({
 
       videoResizeObserver.observe(videoElement)
 
-      registerScreenshotButton()
+      if (!props.legacyFormats.some(format => format.aegisDirectNoCors === true)) {
+        registerScreenshotButton()
+      }
       registerAudioTrackSelection()
       registerAutoplayToggle()
 
@@ -2797,6 +2830,11 @@ export default defineComponent({
       registerFullWindowButton()
       registerLegacyQualitySelection()
       registerStatsButton()
+      if (process.env.AEGISTUBE_EDITION && document.body.dataset.aegisPowerStats === 'true') {
+        handleAegisPowerStatsVisibility(new CustomEvent('aegistube:power-stats', {
+          detail: { enabled: true }
+        }))
+      }
       registerSkipButtons()
 
       if (ui.isMobile()) {
@@ -3222,6 +3260,7 @@ export default defineComponent({
 
       document.removeEventListener('keydown', keyboardShortcutHandler)
       document.removeEventListener('fullscreenchange', fullscreenChangeHandler)
+      window.removeEventListener('aegistube:power-stats', handleAegisPowerStatsVisibility)
 
       if (containerResizeObserver) {
         containerResizeObserver.disconnect()

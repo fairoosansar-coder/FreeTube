@@ -2,7 +2,8 @@
   <div
     :class="{
       grid: grid,
-      list: !grid
+      list: !grid,
+      aegisGrid: isAegisTube
     }"
   >
     <slot />
@@ -10,6 +11,8 @@
 </template>
 
 <script setup>
+const isAegisTube = process.env.AEGISTUBE_EDITION === true
+
 defineProps({
   grid: {
     type: Boolean,

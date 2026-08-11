@@ -3,11 +3,12 @@
   src: url('assets/font/Roboto-Regular.ttf');
 }
 
+/* Upstream FreeTube layout remains the default renderer shell. */
 .app {
+  block-size: 100%;
   display: flex;
   flex-wrap: wrap;
   font-family: Roboto, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
-  block-size: 100%;
 }
 
 .routerView {
@@ -37,18 +38,18 @@
 }
 
 .changeLogTitle {
-  padding-inline: 16px;
-  overflow-wrap: break-word;
   margin-block-end: 16px;
+  overflow-wrap: break-word;
+  padding-inline: 16px;
 }
 
 .changeLogText {
-  overflow-y: scroll;
   block-size: 40vh;
   display: block;
-  padding-inline: 16px;
   margin-block-end: 16px;
   overflow-wrap: break-word;
+  overflow-y: scroll;
+  padding-inline: 16px;
 }
 
 .fade-enter-active,
@@ -59,6 +60,113 @@
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
+}
+
+@keyframes aegis-aurora-drift {
+  0%,
+  100% {
+    transform: translate3d(-4%, -2%, 0) scale(1);
+  }
+
+  50% {
+    transform: translate3d(3%, 2%, 0) scale(1.08);
+  }
+}
+
+/* AegisTube owns the full embedded viewport without changing desktop FreeTube. */
+.app.aegisTubeEdition {
+  background:
+    radial-gradient(circle at 16% 8%, rgb(var(--aegis-accent-rgb, 255 90 95) / 10%), transparent 36%),
+    radial-gradient(circle at 88% 88%, rgb(64 104 210 / 10%), transparent 42%),
+    #03040a;
+  block-size: 100vh;
+  color: var(--primary-text-color);
+  font-family: -apple-system, BlinkMacSystemFont, Roboto, 'SF Pro Display', 'Segoe UI', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji';
+  inline-size: 100%;
+  isolation: isolate;
+  overflow: hidden;
+  position: relative;
+}
+
+.app.aegisTubeEdition::before,
+.app.aegisTubeEdition::after {
+  animation: aegis-aurora-drift 24s ease-in-out infinite;
+  background: radial-gradient(circle, rgb(var(--aegis-accent-rgb, 255 90 95) / 12%), transparent 66%);
+  border-radius: 50%;
+  content: '';
+  filter: blur(48px);
+  pointer-events: none;
+  position: absolute;
+  z-index: -1;
+}
+
+.app.aegisTubeEdition::before {
+  block-size: min(64vw, 780px);
+  inline-size: min(64vw, 780px);
+  inset-block-start: -32%;
+  inset-inline-start: -14%;
+}
+
+.app.aegisTubeEdition::after {
+  animation-delay: -11s;
+  block-size: min(48vw, 620px);
+  inline-size: min(48vw, 620px);
+  inset-block-end: -26%;
+  inset-inline-end: -12%;
+}
+
+.aegisTubeEdition > .flexBox.routerView {
+  background: rgb(9 11 17 / 48%);
+  block-size: calc(100vh - 64px);
+  box-sizing: border-box;
+  display: block;
+  flex: 1 1 0%;
+  margin: 0;
+  min-inline-size: 0;
+  overflow: auto;
+  padding-block: 18px 28px;
+  padding-inline: 26px;
+  user-select: unset;
+}
+
+.aegisTubeEdition .banner {
+  inline-size: min(85%, 980px);
+  margin-block: 18px 0;
+}
+
+.aegisTubeEdition .banner + .banner {
+  margin-block-start: 14px;
+}
+
+.aegisTubeEdition .banner-wrapper {
+  margin: 0;
+}
+
+.aegisTubeEdition .changeLogText {
+  overflow-y: auto;
+}
+
+.aegisTubeEdition .fade-enter-active,
+.aegisTubeEdition .fade-leave-active {
+  transition: opacity 150ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app.aegisTubeEdition::before,
+  .app.aegisTubeEdition::after,
+  .aegisTubeEdition .fade-enter-active,
+  .aegisTubeEdition .fade-leave-active {
+    animation: none;
+    transition: none;
+  }
+}
+
+:global(body[data-aegis-reduced-motion='true']) .app.aegisTubeEdition::before,
+:global(body[data-aegis-reduced-motion='true']) .app.aegisTubeEdition::after,
+:global(body[data-aegis-reduced-motion='true']) .aegisTubeEdition .fade-enter-active,
+:global(body[data-aegis-reduced-motion='true']) .aegisTubeEdition .fade-leave-active {
+  animation: none;
+  transition: none;
 }
 
 @media only screen and (width <= 680px) {
@@ -74,6 +182,19 @@
 
   .flexBox {
     margin-block: 60px -75px;
+  }
+
+  .aegisTubeEdition > .flexBox.routerView {
+    block-size: calc(100vh - 58px);
+    flex-basis: 100%;
+    margin: 0;
+    padding-block: 12px 82px;
+    padding-inline: 10px;
+  }
+
+  .aegisTubeEdition .banner {
+    inline-size: 94%;
+    margin-block: 18px 0;
   }
 
   .changeLogText {

@@ -1,6 +1,7 @@
 import { ClientType, Constants, Innertube, Misc, Mixins, Parser, Platform, UniversalCache, Utils, YT, YTNodes } from 'youtubei.js'
 import Autolinker from 'autolinker'
 import { SEARCH_CHAR_LIMIT } from '../../../constants'
+import { fetchThroughAegisInnertube, isAegisNativeExtractorExpected } from '../aegisBridge'
 
 import { PlayerCache } from './PlayerCache'
 import {
@@ -19,6 +20,16 @@ const TRACKING_PARAM_NAMES = [
   'utm_term',
   'utm_content',
 ]
+
+const AEGIS_NATIVE_EXTRACTOR = process.env.AEGISOS_WEB_EDITION && isAegisNativeExtractorExpected()
+
+async function nativeAwareFetch(input, init) {
+  if (process.env.AEGISOS_WEB_EDITION) {
+    const response = await fetchThroughAegisInnertube(input, init)
+    if (response) return response
+  }
+  return fetch(input, init)
+}
 
 if (process.env.SUPPORTS_LOCAL_API) {
   Platform.shim.eval = (data) => {
@@ -98,8 +109,9 @@ async function createInnertube({ withPlayer = false, location = undefined, safet
     enable_safety_mode: !!safetyMode,
     client_type: clientType,
 
-    // use browser fetch
-    fetch: (fetchFunc ?? ((input, init) => fetch(input, init))),
+    // The installed AegisOS build uses its authenticated native JSON relay.
+    // Standalone web builds retain their normal best-effort browser fetch.
+    fetch: (fetchFunc ?? nativeAwareFetch),
     cache,
     generate_session_locally: !!generateSessionLocally
   })
@@ -391,18 +403,23 @@ export async function getLocalSearchContinuation(continuationData) {
  * }>}
  */
 export async function getLocalVideoInfo(id) {
+  if (AEGIS_NATIVE_EXTRACTOR && !/^[\w-]{11}$/.test(id)) {
+    throw new Error('AegisOS received an invalid YouTube video ID')
+  }
+
   let responseTime = Date.now()
   let totalAdTimeMilliseconds = 0
 
   const webInnertube = await createInnertube({
-    withPlayer: true,
-    generateSessionLocally: false,
+    withPlayer: !AEGIS_NATIVE_EXTRACTOR,
+    generateSessionLocally: AEGIS_NATIVE_EXTRACTOR,
     fetchFunc: async (input, init) => {
-      if (!(input.url?.startsWith('https://www.youtube.com/youtubei/v1/player'))) {
-        return fetch(input, init)
+      const requestUrl = input instanceof Request ? input.url : String(input)
+      if (!requestUrl.startsWith('https://www.youtube.com/youtubei/v1/player')) {
+        return nativeAwareFetch(input, init)
       }
 
-      const response = await fetch(input, init)
+      const response = await nativeAwareFetch(input, init)
 
       const responseText = await response.text()
 
@@ -457,7 +474,15 @@ export async function getLocalVideoInfo(id) {
     }
   }
 
-  const info = await webInnertube.getInfo(id, { po_token: contentPoToken })
+  // Keep the session itself on the web client so `/next` remains compatible
+  // with YouTube.js' desktop parser. Only the player request uses Android,
+  // which currently supplies one direct combined MP4 without a PO token.
+  const info = await webInnertube.getInfo(
+    id,
+    AEGIS_NATIVE_EXTRACTOR
+      ? { client: ClientType.ANDROID }
+      : { po_token: contentPoToken }
+  )
 
   // Some time would be used for parsing and maybe additional requests so end time should be calculated sooner to reduce actual waiting time
   // Legacy format requires this
@@ -469,9 +494,12 @@ export async function getLocalVideoInfo(id) {
   let trailerIsAgeRestricted = info.getTrailerInfo() === null
 
   if (
-    ((info.playability_status.status === 'UNPLAYABLE' || info.playability_status.status === 'LOGIN_REQUIRED') &&
-      info.playability_status.reason === 'Sign in to confirm your age') ||
-    (hasTrailer && trailerIsAgeRestricted)
+    !AEGIS_NATIVE_EXTRACTOR &&
+    (
+      ((info.playability_status.status === 'UNPLAYABLE' || info.playability_status.status === 'LOGIN_REQUIRED') &&
+        info.playability_status.reason === 'Sign in to confirm your age') ||
+      (hasTrailer && trailerIsAgeRestricted)
+    )
   ) {
     try {
       const webEmbeddedInnertube = await createInnertube({ clientType: ClientType.WEB_EMBEDDED })
@@ -530,30 +558,43 @@ export async function getLocalVideoInfo(id) {
   }
 
   if (info.streaming_data) {
-    const player = webInnertube.session.player
+    if (AEGIS_NATIVE_EXTRACTOR) {
+      info.streaming_data.formats = info.streaming_data.formats.filter(prepareAegisLegacyFormat)
+      if (info.streaming_data.formats.length === 0) {
+        throw new Error('YouTube did not provide a safe combined stream for this video')
+      }
+      // Adaptive/SABR streams need a CORS-capable media relay. Keep this
+      // release on the validated combined MP4 and native `video.src` path.
+      info.streaming_data.adaptive_formats = []
+      info.streaming_data.server_abr_streaming_url = undefined
+      info.streaming_data.dash_manifest_url = undefined
+      info.streaming_data.hls_manifest_url = undefined
+    } else {
+      const player = webInnertube.session.player
 
-    await decipherFormats(info.streaming_data.formats, player)
+      await decipherFormats(info.streaming_data.formats, player)
 
-    if (info.streaming_data.server_abr_streaming_url) {
-      info.streaming_data.server_abr_streaming_url = await player.decipher(info.streaming_data.server_abr_streaming_url)
-    }
+      if (info.streaming_data.server_abr_streaming_url) {
+        info.streaming_data.server_abr_streaming_url = await player.decipher(info.streaming_data.server_abr_streaming_url)
+      }
 
-    if (info.streaming_data.dash_manifest_url) {
-      info.streaming_data.dash_manifest_url = await decipherManifestUrl(
-        info.streaming_data.dash_manifest_url,
-        webInnertube.session.player,
-        contentPoToken,
-        true
-      )
-    }
+      if (info.streaming_data.dash_manifest_url) {
+        info.streaming_data.dash_manifest_url = await decipherManifestUrl(
+          info.streaming_data.dash_manifest_url,
+          webInnertube.session.player,
+          contentPoToken,
+          true
+        )
+      }
 
-    if (info.streaming_data.hls_manifest_url) {
-      info.streaming_data.hls_manifest_url = await decipherManifestUrl(
-        info.streaming_data.hls_manifest_url,
-        webInnertube.session.player,
-        contentPoToken,
-        false
-      )
+      if (info.streaming_data.hls_manifest_url) {
+        info.streaming_data.hls_manifest_url = await decipherManifestUrl(
+          info.streaming_data.hls_manifest_url,
+          webInnertube.session.player,
+          contentPoToken,
+          false
+        )
+      }
     }
   }
 
@@ -561,9 +602,11 @@ export async function getLocalVideoInfo(id) {
     for (const captionTrack of info.captions.caption_tracks) {
       const url = new URL(captionTrack.base_url)
 
-      url.searchParams.set('potc', '1')
-      url.searchParams.set('pot', contentPoToken)
-      url.searchParams.set('c', clientName)
+      if (contentPoToken) {
+        url.searchParams.set('potc', '1')
+        url.searchParams.set('pot', contentPoToken)
+        url.searchParams.set('c', clientName)
+      }
 
       // Remove &xosf=1 as it adds `position:63% line:0%` to the subtitle lines
       // placing them in the top right corner
@@ -581,6 +624,37 @@ export async function getLocalVideoInfo(id) {
   }
 }
 
+function prepareAegisLegacyFormat(format) {
+  if (
+    format.itag !== 18 ||
+    format.has_audio !== true ||
+    format.has_video !== true ||
+    typeof format.url !== 'string' ||
+    !format.mime_type?.startsWith('video/mp4')
+  ) return false
+
+  try {
+    const url = new URL(format.url)
+    const host = url.hostname.toLowerCase()
+    if (
+      url.protocol !== 'https:' ||
+      (url.port !== '' && url.port !== '443') ||
+      url.username !== '' ||
+      url.password !== '' ||
+      url.hash !== '' ||
+      !(host === 'googlevideo.com' || host.endsWith('.googlevideo.com')) ||
+      url.pathname !== '/videoplayback' ||
+      url.searchParams.get('itag') !== '18'
+    ) return false
+
+    format.freeTubeUrl = url.toString()
+    format.aegisDirectNoCors = true
+    return true
+  } catch {
+    return false
+  }
+}
+
 /**
  * @param {string} id
  */
@@ -594,6 +668,7 @@ export async function getLocalComments(id) {
 /**
  * @typedef {object} _LocalFormat
  * @property {string} freeTubeUrl deciphered streaming URL, stored in a custom property so the DASH manifest generation doesn't break
+ * @property {boolean} [aegisDirectNoCors] whether native progressive playback must omit the CORS attribute
  *
  * @typedef {Misc.Format & _LocalFormat} LocalFormat
  */
@@ -2024,7 +2099,8 @@ export function mapLocalLegacyFormat(format) {
     mimeType: format.mime_type,
     height: format.height,
     width: format.width,
-    url: format.freeTubeUrl
+    url: format.freeTubeUrl,
+    aegisDirectNoCors: format.aegisDirectNoCors === true
   }
 }
 

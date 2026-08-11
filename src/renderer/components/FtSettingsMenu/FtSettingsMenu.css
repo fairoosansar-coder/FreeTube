@@ -1,12 +1,27 @@
 .settingsMenu {
   /* top nav + margin */
-  inset-block-start: 96px;
   position: sticky;
+  inset-block-start: 96px;
   display: flex;
   flex-direction: column;
   padding-inline-start: 0;
   block-size: calc(85vh - 96px);
   max-block-size: 600px;
+}
+
+.settingsMenuList {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.settingsMenuItem {
+  display: flex;
+  flex: 1 1 auto;
+  min-block-size: 0;
 }
 
 .header {
@@ -19,12 +34,25 @@
 }
 
 .title {
-  text-decoration: none;
-  color: var(--tertiary-text-color);
+  box-sizing: border-box;
   inline-size: 220px;
-  flex: 1 1 auto;
   display: flex;
+  flex: 1 1 auto;
   align-items: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--tertiary-text-color);
+  font: inherit;
+  text-align: start;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.title:focus-visible {
+  border-radius: 8px;
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
 }
 
 /* prevent hover styling from showing on title click for mobile */
@@ -35,12 +63,14 @@
 }
 
 .titleContent {
+  display: block;
   inline-size: fit-content;
   max-inline-size: 100%;
 }
 
-
 .iconAndTitleText {
+  display: flex;
+  align-items: center;
   overflow-x: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -49,7 +79,19 @@
   margin-inline-start: 3px;
 }
 
+.iconAndTitleText > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.titleIcon {
+  flex: none;
+  margin-inline-end: 7px;
+}
+
 .titleUnderline {
+  display: block;
+
   /* have underline poke out */
   inline-size: calc(100% + 6px);
 
@@ -83,15 +125,139 @@
   }
 }
 
+/* The AegisTube edition uses a compact category rail with a single active
+ * settings panel. These rules are intentionally gated so the upstream menu
+ * keeps its original document-navigation proportions. */
+.settingsMenu.aegisMenu {
+  position: sticky;
+  inset-block-start: 0;
+  box-sizing: border-box;
+  flex: 0 0 200px;
+  inline-size: 200px;
+  block-size: 100%;
+  max-block-size: none;
+  padding-block: 18px 14px;
+  padding-inline: 10px;
+  margin: 0;
+  overflow-y: auto;
+  border-inline-end: 1px solid var(--aegis-hairline, rgb(255 255 255 / 7%));
+  background:
+    linear-gradient(180deg, rgb(255 255 255 / 2%), transparent 35%),
+    var(--aegis-panel-strong, #0b0f16);
+  font-size: 13px;
+  scrollbar-width: thin;
+}
+
+.aegisMenu .header {
+  display: flex;
+  align-items: center;
+  inline-size: auto;
+  min-block-size: 34px;
+  padding-inline: 10px;
+  margin-block: 0 12px;
+  color: var(--primary-text-color);
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+.aegisMenu .headingIcon {
+  inline-size: 14px;
+  block-size: 14px;
+  margin-inline-end: 9px;
+  color: var(--aegis-accent-light, var(--primary-color));
+}
+
+.aegisMenu .settingsMenuList {
+  gap: 2px;
+}
+
+.aegisMenu .settingsMenuItem {
+  flex: 0 0 auto;
+}
+
+.aegisMenu .title {
+  flex: 0 0 auto;
+  inline-size: 100%;
+  min-block-size: 38px;
+  padding-block: 8px;
+  padding-inline: 10px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: var(--tertiary-text-color);
+  font-size: 13px;
+  font-weight: 520;
+  line-height: 1.25;
+  transition:
+    color 130ms ease,
+    border-color 130ms ease,
+    background-color 130ms ease;
+}
+
+.aegisMenu .titleContent {
+  inline-size: 100%;
+}
+
+.aegisMenu .iconAndTitleText {
+  margin: 0;
+}
+
+.aegisMenu .titleIcon {
+  inline-size: 14px;
+  block-size: 14px;
+  margin-inline-end: 10px;
+  color: currentcolor;
+}
+
+.aegisMenu .titleUnderline {
+  display: none;
+}
+
+.aegisMenu .title.active {
+  border-color: rgb(var(--aegis-accent-rgb, 232 38 43) / 16%);
+  background: rgb(var(--aegis-accent-rgb, 232 38 43) / 10%);
+  box-shadow: inset 2px 0 0 var(--aegis-accent, var(--primary-color));
+  color: var(--aegis-accent-light, var(--primary-color));
+  font-weight: 650;
+}
+
+@media (hover: hover) {
+  .aegisMenu .title:hover {
+    border-color: rgb(var(--aegis-accent-rgb, 232 38 43) / 12%);
+    background: rgb(255 255 255 / 4%);
+    color: var(--primary-text-color);
+  }
+
+  .aegisMenu .title.active:hover {
+    background: rgb(var(--aegis-accent-rgb, 232 38 43) / 13%);
+    color: var(--aegis-accent-light, var(--primary-color));
+  }
+}
+
+.aegisMenu .title:focus-visible {
+  outline: none;
+  box-shadow: var(--aegis-focus-ring, 0 0 0 3px rgb(232 38 43 / 24%));
+}
+
+.aegisMenu .aboutMenuItem {
+  padding-block-start: 11px;
+  margin-block-start: auto;
+  border-block-start: 1px solid var(--aegis-hairline, rgb(255 255 255 / 7%));
+}
+
+.aegisMenu .aboutLink {
+  color: var(--secondary-text-color);
+}
+
 /* overall mobile breakpoint; large text */
 @media only screen and (width <= 1015px) {
   .settingsMenu {
-    inline-size: fit-content;
-    margin-inline: auto;
     position: relative;
     inset-block-start: 0;
-    font-size: 30px;
+    inline-size: fit-content;
     max-block-size: 1100px;
+    margin-inline: auto;
+    font-size: 30px;
   }
 
   .titleIcon {
@@ -113,22 +279,90 @@
   .headingIcon {
     display: none;
   }
+
+  .settingsMenu.aegisMenu {
+    flex: 1 1 0%;
+    position: relative;
+    inline-size: 100%;
+    block-size: 100%;
+    min-block-size: 0;
+    max-block-size: none;
+    padding-block: 18px 24px;
+    padding-inline: clamp(14px, 5vw, 32px);
+    margin: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    border-inline-end: 0;
+    background: transparent;
+    font-size: 14px;
+  }
+
+  .aegisMenu .header {
+    min-block-size: 42px;
+    padding-inline: 12px;
+    margin-block-end: 12px;
+    font-size: 20px;
+  }
+
+  .aegisMenu .headingIcon {
+    display: inline-block;
+    inline-size: 17px;
+    block-size: 17px;
+  }
+
+  .aegisMenu .settingsMenuList {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .aegisMenu .title {
+    inline-size: 100%;
+    max-inline-size: none;
+    min-block-size: 48px;
+    padding-inline: 13px;
+    border-color: var(--aegis-hairline, rgb(255 255 255 / 7%));
+    background: rgb(255 255 255 / 2.5%);
+    font-size: 13px;
+  }
+
+  .aegisMenu .titleIcon {
+    inline-size: 15px;
+    block-size: 15px;
+    margin-inline-end: 10px;
+  }
+
+  .aegisMenu .aboutMenuItem {
+    padding-block-start: 0;
+    margin-block-start: 0;
+    border-block-start: 0;
+  }
 }
 
 /* small height or width mobile breakpoint; intermediary text */
 @media only screen and (width <= 1015px) and (height <= 830px),
   only screen and (width <= 500px) {
-  .settingsMenu {
+  .settingsMenu:not(.aegisMenu) {
     font-size: 25px;
   }
 
-  .titleIcon {
+  .settingsMenu:not(.aegisMenu) .titleIcon {
     inline-size: 25px;
     block-size: 25px;
     margin-inline-end: 5px;
   }
 
-  .header {
+  .settingsMenu:not(.aegisMenu) .header {
     font-size: 25px;
+  }
+}
+
+@media only screen and (width <= 640px) {
+  .aegisMenu .settingsMenuList {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .aegisMenu .title {
+    min-block-size: 46px;
   }
 }

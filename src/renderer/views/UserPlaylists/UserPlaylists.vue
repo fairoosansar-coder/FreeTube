@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div :class="{ aegisView: isAegisTube }">
     <FtCard
       class="card"
     >
@@ -9,7 +9,7 @@
             :icon="['fas', 'bookmark']"
             class="headingIcon"
           />
-          {{ $t("User Playlists.Your Playlists") }}
+          {{ isAegisTube ? $t("Playlists") : $t("User Playlists.Your Playlists") }}
         </h2>
         <FtIconButton
           :title="$t('User Playlists.Create New Playlist')"
@@ -115,6 +115,7 @@ import store from '../../store/index'
 import { ctrlFHandler, debounce, getIconForSortPreference } from '../../helpers/utils'
 
 const { locale, t } = useI18n()
+const isAegisTube = process.env.AEGISTUBE_EDITION === true
 
 const sessionDataLimit = sessionStorage.getItem('UserPlaylists/dataLimit')
 

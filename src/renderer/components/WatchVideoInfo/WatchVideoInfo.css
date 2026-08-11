@@ -139,3 +139,66 @@
     inset-inline: 0 auto;
   }
 }
+
+:global(body[data-aegis-accent] .watchVideoInfo) {
+  backdrop-filter: blur(18px);
+  background: rgb(255 255 255 / 4%);
+  border: 1px solid var(--aegis-hairline);
+  border-radius: 10px;
+  box-shadow: none;
+  gap: 10px;
+  padding-block: 14px;
+  padding-inline: 16px;
+}
+
+:global(body[data-aegis-accent] .watchVideoInfo .videoTitle) {
+  color: #f2f4f8;
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+:global(body[data-aegis-accent] .watchVideoInfo .videoMetrics) {
+  color: #8891a0;
+  font-size: 11.5px;
+}
+
+:global(body[data-aegis-accent] .watchVideoInfo .likeSection) {
+  color: #8891a0;
+}
+
+:global(body[data-aegis-accent] .watchVideoInfo .channelThumbnail) {
+  border: 1px solid var(--aegis-hairline);
+  inline-size: 38px;
+}
+
+:global(body[data-aegis-accent] .watchVideoInfo .channelName) {
+  color: #eef1f5;
+  font-size: 13px;
+  font-weight: 600;
+  margin-block-end: 0;
+  margin-inline-start: 2px;
+}
+
+:global(body[data-aegis-accent] .watchVideoInfo .videoOptions) {
+  gap: 6px;
+}
+
+:global([data-aegis-accent] .videoOptions button) {
+  border-color: var(--aegis-hairline);
+  border-radius: 18px;
+}
+
+@media screen and (width <= 680px) {
+  :global(body[data-aegis-accent] .watchVideoInfo) {
+    padding: 12px;
+  }
+
+  :global(body[data-aegis-accent] .watchVideoInfo .videoButtons) {
+    align-items: stretch;
+  }
+
+  :global(body[data-aegis-accent] .watchVideoInfo .videoOptions) {
+    flex-wrap: wrap;
+  }
+}

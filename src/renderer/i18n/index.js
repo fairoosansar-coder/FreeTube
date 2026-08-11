@@ -3,6 +3,32 @@ import { createWebURL } from '../helpers/utils'
 // List of locales approved for use
 import activeLocales from '../../../static/locales/activeLocales.json'
 
+// Keep the upstream locale keys stable for import and merge compatibility,
+// while presenting this derivative application consistently as AegisTube.
+// Upstream identity, source, credits, and license remain explicit in About.
+const LOCALIZED_FREETUBE_NAME = /free\s*tube|ஃப்ரீட்யூப்|فری\s*ٹیوب/giu
+
+function rebrandMessageTree(value) {
+  if (typeof value === 'string') {
+    return value.replaceAll(LOCALIZED_FREETUBE_NAME, 'AegisTube')
+  }
+  if (Array.isArray(value)) {
+    return value.map(rebrandMessageTree)
+  }
+  if (value && typeof value === 'object') {
+    for (const [key, child] of Object.entries(value)) {
+      value[key] = rebrandMessageTree(child)
+    }
+  }
+  return value
+}
+
+function applyAegisTubeProductName(messages) {
+  return process.env.AEGISTUBE_EDITION
+    ? rebrandMessageTree(messages)
+    : messages
+}
+
 const i18n = createI18n({
   locale: 'en-US',
   legacy: false,
@@ -45,7 +71,7 @@ export async function loadLocale(locale) {
   const url = createWebURL(path)
 
   const response = await fetch(url)
-  const data = await response.json()
+  const data = applyAegisTubeProductName(await response.json())
   i18n.global.setLocaleMessage(locale, data)
 }
 
@@ -61,7 +87,7 @@ if (process.env.HOT_RELOAD_LOCALES) {
         // Only update locale data if it was already loaded
         if (i18n.global.availableLocales.includes(locale) &&
           Object.keys(i18n.global.messages.value[locale]).length > 0) {
-          const localeData = JSON.parse(data)
+          const localeData = applyAegisTubeProductName(JSON.parse(data))
 
           i18n.global.setLocaleMessage(locale, localeData)
         }

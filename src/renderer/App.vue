@@ -1,8 +1,16 @@
 <template>
+  <AegisBoot
+    v-if="!dataReady && isAegisTube"
+    :stage="bootStage"
+    :completed-stages="completedBootStages"
+    :error-message="bootError"
+    @retry="retryStartup"
+  />
   <div
-    v-if="dataReady"
+    v-else-if="dataReady"
     class="app"
     :class="{
+      aegisTubeEdition: isAegisTube,
       hideOutlines: outlinesHidden,
       isLocaleRightToLeft: isLocaleRightToLeft,
       isSideNavOpen: isSideNavOpen,
@@ -122,6 +130,7 @@ import FtPlaylistAddVideoPrompt from './components/FtPlaylistAddVideoPrompt/FtPl
 import FtCreatePlaylistPrompt from './components/FtCreatePlaylistPrompt/FtCreatePlaylistPrompt.vue'
 import FtKeyboardShortcutPrompt from './components/FtKeyboardShortcutPrompt/FtKeyboardShortcutPrompt.vue'
 import FtSearchFilters from './components/FtSearchFilters/FtSearchFilters.vue'
+import AegisBoot from './components/AegisTubeShell/AegisBoot.vue'
 import { vSaferHtml } from './directives/vSaferHtml.js'
 
 import store from './store/index'
@@ -130,10 +139,17 @@ import packageDetails from '../../package.json'
 import { openExternalLink, openInternalPath, showToast } from './helpers/utils'
 import { translateWindowTitle } from './helpers/strings'
 import { loadLocale } from './i18n/index'
+import {
+  emitAegisShellEvent,
+  getAegisProxyOrigins,
+  isAegisNativeExtractorExpected,
+  subscribeToAegisShellEvent,
+} from './helpers/aegisBridge'
 
 const route = useRoute()
 const router = useRouter()
 const { locale, t } = useI18n()
+const isAegisTube = process.env.AEGISTUBE_EDITION === true
 
 /** @type {import('vue').ComputedRef<boolean>} */
 const isSideNavOpen = computed(() => store.getters.getIsSideNavOpen)
@@ -165,61 +181,159 @@ const landingPage = computed(() => '/' + store.getters.getLandingPage)
 const defaultInvidiousInstance = computed(() => store.getters.getDefaultInvidiousInstance)
 
 const dataReady = ref(false)
+const bootStage = ref('Starting AegisTube')
+const completedBootStages = ref([])
+const bootError = ref('')
+let unsubscribeShellContext = () => {}
+
+function applyAegisShellContext(context) {
+  if (!isAegisTube || context === null || typeof context !== 'object') return
+  if (typeof context.reducedMotion === 'boolean') {
+    document.body.dataset.aegisReducedMotion = String(context.reducedMotion)
+  }
+  if (typeof context.scale === 'number' && context.scale >= 0.75 && context.scale <= 1.5) {
+    document.body.style.setProperty('--aegis-host-scale', String(context.scale))
+    document.documentElement.style.fontSize = `${13 * context.scale}px`
+  }
+}
 
 onMounted(async () => {
-  await store.dispatch('grabUserSettings')
-
-  updateTheme()
-
-  await store.dispatch('fetchInvidiousInstancesFromFile')
-  if (defaultInvidiousInstance.value === '') {
-    await store.dispatch('setRandomCurrentInvidiousInstance')
-  }
-
-  store.dispatch('fetchInvidiousInstances').then(() => {
-    if (defaultInvidiousInstance.value === '') {
-      store.dispatch('setRandomCurrentInvidiousInstance')
+  try {
+    if (isAegisTube) {
+      unsubscribeShellContext = subscribeToAegisShellEvent('shell-context', applyAegisShellContext)
     }
-  })
 
-  store.dispatch('grabAllProfiles', t('Profile.All Channels')).then(() => {
-    store.dispatch('grabHistory')
-    store.dispatch('grabAllPlaylists')
-    store.dispatch('grabAllSubscriptions')
-    store.dispatch('grabSearchHistoryEntries')
+    if (process.env.AEGISOS_WEB_EDITION && isAegisNativeExtractorExpected()) {
+      bootStage.value = 'Connecting to AegisOS'
+      const proxyOrigins = await getAegisProxyOrigins()
+      completedBootStages.value.push(
+        proxyOrigins === null
+          ? 'AegisOS bridge unavailable; using standalone services'
+          : 'AegisOS bridge connected'
+      )
+    }
+
+    bootStage.value = 'Loading preferences'
+    await store.dispatch('grabUserSettings')
+    completedBootStages.value.push('Preferences loaded')
+
+    if (process.env.AEGISOS_WEB_EDITION && isAegisNativeExtractorExpected()) {
+      // Native extraction is the reliable playback path. Override an older
+      // saved Invidious-only preference when the authenticated shell is present.
+      store.commit('setBackendPreference', 'local')
+      store.commit('setBackendFallback', true)
+    }
+
+    updateTheme()
+
+    bootStage.value = 'Preparing playback services'
+    let discoveryPrepared = true
+    try {
+      await store.dispatch('fetchInvidiousInstancesFromFile')
+    } catch (error) {
+      discoveryPrepared = false
+      console.warn('AegisTube public discovery could not load its local service list', error)
+    }
+
+    // Invidious still supplies the lightweight popular feed and remains the
+    // standalone web fallback, so resolve it before mounting the first route.
+    if (process.env.AEGISOS_WEB_EDITION) {
+      try {
+        await store.dispatch('fetchInvidiousInstances')
+      } catch (error) {
+        discoveryPrepared = false
+        console.warn('AegisTube public discovery could not refresh its service list', error)
+      }
+    }
+
+    if (defaultInvidiousInstance.value === '') {
+      await store.dispatch('setRandomCurrentInvidiousInstance')
+    }
+
+    if (!process.env.AEGISOS_WEB_EDITION) {
+      store.dispatch('fetchInvidiousInstances').then(() => {
+        if (defaultInvidiousInstance.value === '') {
+          store.dispatch('setRandomCurrentInvidiousInstance')
+        }
+      }).catch((error) => {
+        console.warn('Could not refresh the public discovery service list', error)
+      })
+    }
+    completedBootStages.value.push(
+      discoveryPrepared
+        ? 'Playback configuration loaded'
+        : 'Local shell ready; public discovery unavailable'
+    )
+
+    bootStage.value = 'Restoring profiles'
+    await store.dispatch('grabAllProfiles', t('Profile.All Channels'))
+    completedBootStages.value.push('Profiles restored')
+
+    bootStage.value = 'Restoring local library'
+    const libraryResults = await Promise.allSettled([
+      store.dispatch('grabHistory'),
+      store.dispatch('grabAllPlaylists'),
+      store.dispatch('grabAllSubscriptions'),
+      store.dispatch('grabSearchHistoryEntries')
+    ])
+    completedBootStages.value.push(
+      libraryResults.every(result => result.status === 'fulfilled')
+        ? 'Local library restored'
+        : 'Local library opened with limited data'
+    )
+
+    if (process.env.IS_ELECTRON || process.env.AEGISOS_WEB_EDITION) {
+      document.addEventListener('click', handleClick)
+      document.addEventListener('auxclick', handleAuxClick)
+    }
 
     if (process.env.IS_ELECTRON) {
       store.dispatch('setupListenersToSyncWindows')
-      document.addEventListener('click', handleClick)
-      document.addEventListener('auxclick', handleAuxClick)
       enableOpenUrl()
       store.dispatch('getExternalPlayerCmdArgumentsData')
     }
 
+    bootStage.value = 'Ready'
     dataReady.value = true
+    emitAegisShellEvent('app-ready', { route: route.fullPath })
 
-    setTimeout(() => {
-      checkForNewUpdates()
-    }, 500)
-  })
+    if (!process.env.AEGISOS_WEB_EDITION) {
+      setTimeout(() => {
+        checkForNewUpdates()
+      }, 500)
+    }
 
-  if (route.path === '/') {
-    router.replace({ path: landingPage.value })
+    if (route.path === '/') {
+      router.replace({ path: landingPage.value })
+    }
+
+    setWindowTitle()
+
+    document.addEventListener('keydown', handleKeyboardShortcuts)
+    document.addEventListener('mousedown', handleMouseDown)
+    document.addEventListener('dragstart', handleDragStart)
+  } catch (error) {
+    console.error('AegisTube failed to initialize', error)
+    bootStage.value = 'Startup paused'
+    bootError.value = 'AegisTube could not finish loading. Retry to reconnect its playback services and local library.'
   }
-
-  setWindowTitle()
-
-  document.addEventListener('keydown', handleKeyboardShortcuts)
-  document.addEventListener('mousedown', handleMouseDown)
-  document.addEventListener('dragstart', handleDragStart)
 })
 
+function retryStartup() {
+  window.location.reload()
+}
+
 onBeforeUnmount(() => {
+  unsubscribeShellContext()
   document.removeEventListener('keydown', handleKeyboardShortcuts)
   document.removeEventListener('mousedown', handleMouseDown)
   document.removeEventListener('dragstart', handleDragStart)
   document.removeEventListener('click', handleClick)
   document.removeEventListener('auxclick', handleAuxClick)
+})
+
+watch(bootStage, (stage) => {
+  emitAegisShellEvent('boot-status', { stage })
 })
 
 /** @type {import('vue').ComputedRef<string>} */
@@ -237,9 +351,20 @@ const secColor = computed(() => store.getters.getSecColor)
 
 watch(secColor, updateTheme)
 
+/** @type {import('vue').ComputedRef<string>} */
+const aegisAccentKey = computed(() => store.getters.getAegisAccentKey)
+
+watch(aegisAccentKey, updateTheme)
+
 function updateTheme() {
   document.body.className = `${baseTheme.value || 'system'} main${mainColor.value || 'Red'} sec${secColor.value || 'Blue'}`
   document.body.dataset.systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+
+  if (isAegisTube) {
+    document.body.dataset.aegisAccent = aegisAccentKey.value || 'ember'
+  } else {
+    delete document.body.dataset.aegisAccent
+  }
 }
 
 updateTheme()
@@ -369,19 +494,36 @@ function handleExternalLinkOpeningPromptAnswer(option) {
 }
 
 /**
+ * Resolve link clicks from the anchor or any nested image/text element.
  * @param {PointerEvent} event
+ * @returns {HTMLAnchorElement | null}
  */
-function isExternalLink(event) {
-  return event.target.tagName === 'A' && !event.target.href.startsWith(window.location.origin)
+function getExternalLinkAnchor(event) {
+  const anchor = event.target instanceof Element
+    ? event.target.closest('a[href]')
+    : null
+  if (!(anchor instanceof HTMLAnchorElement)) return null
+
+  try {
+    const url = new URL(anchor.href, window.location.href)
+    const isSpaRoute = url.origin === window.location.origin &&
+      url.pathname === window.location.pathname &&
+      url.search === window.location.search &&
+      url.hash.startsWith('#/')
+    return isSpaRoute
+      ? null
+      : anchor
+  } catch {
+    return anchor
+  }
 }
 
 /**
  * @param {PointerEvent} event
  */
 function handleClick(event) {
-  if (isExternalLink(event)) {
-    handleLinkClick(event)
-  }
+  const anchor = getExternalLinkAnchor(event)
+  if (anchor) handleLinkClick(event, anchor)
 }
 
 /**
@@ -391,16 +533,16 @@ function handleAuxClick(event) {
   // auxclick fires for all clicks not performed with the primary button
   // only handle the link click if it was the middle button,
   // otherwise the context menu breaks
-  if (isExternalLink(event) && event.button === 1) {
-    handleLinkClick(event)
-  }
+  const anchor = getExternalLinkAnchor(event)
+  if (anchor && event.button === 1) handleLinkClick(event, anchor)
 }
 
 /**
  * @param {PointerEvent} event
+ * @param {HTMLAnchorElement} anchor
  */
-function handleLinkClick(event) {
-  const href = event.target.href
+function handleLinkClick(event, anchor) {
+  const href = anchor.href
   event.preventDefault()
 
   // Check if it's a YouTube link, but exclude live chat pop out
@@ -553,14 +695,15 @@ const windowTitle = computed(() => {
 
 /** @type {import('vue').ComputedRef<string>} */
 const appTitle = computed(() => store.getters.getAppTitle)
+const productName = process.env.AEGISOS_PRODUCT_NAME || packageDetails.productName
 
 watch(appTitle, (value) => {
   if (value.length > 0) {
-    document.title = `${value} - ${packageDetails.productName}`
+    document.title = `${value} - ${productName}`
   } else {
-    document.title = packageDetails.productName
+    document.title = productName
   }
-})
+}, { immediate: true })
 
 watch(windowTitle, setWindowTitle)
 

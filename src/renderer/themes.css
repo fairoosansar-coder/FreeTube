@@ -39,6 +39,25 @@ body {
   --logo-primary-color: var(--primary-text-color);
   --logo-secondary-color: var(--primary-text-color);
   --logo-tertiary-color: var(--primary-text-color);
+
+  /* Ember is the safe first-paint default for the AegisTube shell. */
+  --aegis-accent: #e8262b;
+  --aegis-accent-rgb: 232 38 43;
+  --aegis-accent-light: #ff6b6b;
+  --aegis-accent-light-rgb: 255 107 107;
+  --aegis-accent-dark: #8c1216;
+  --aegis-accent-dark-rgb: 140 18 22;
+  --aegis-on-accent: #fff;
+  --aegis-accent-gradient: linear-gradient(135deg, var(--aegis-accent-light), var(--aegis-accent-dark));
+  --aegis-accent-glow: 0 0 34px rgb(var(--aegis-accent-rgb) / 34%);
+  --aegis-accent-wash: rgb(var(--aegis-accent-rgb) / 10%);
+  --aegis-accent-border: rgb(var(--aegis-accent-rgb) / 28%);
+  --aegis-focus-ring: 0 0 0 3px rgb(var(--aegis-accent-rgb) / 24%);
+  --aegis-void: #07090e;
+  --aegis-panel: #10141d;
+  --aegis-panel-strong: #0b0f16;
+  --aegis-glass: rgb(14 18 27 / 82%);
+  --aegis-hairline: rgb(255 255 255 / 7%);
 }
 
 /*************** RULE TWEAKS ***************/
@@ -187,20 +206,21 @@ it can be safely elided. This looks quite pleasant on this theme. */
 
 .system[data-system-theme*='dark'],
 .dark {
-  --primary-text-color: #eee;
-  --secondary-text-color: #ddd;
-  --tertiary-text-color: #999;
-  --title-color: #eee;
-  --bg-color: #212121;
+  /* Modified 2026-08-06: quieter surfaces for the AegisOS web edition. */
+  --primary-text-color: #eef1f7;
+  --secondary-text-color: #c7ccd8;
+  --tertiary-text-color: #858b9b;
+  --title-color: #eef1f7;
+  --bg-color: #080b11;
   --favorite-icon-color: #0f0;
-  --card-bg-color: #303030;
-  --secondary-card-bg-color: rgb(0 0 0 / 75%);
-  --scrollbar-color: #414141;
-  --scrollbar-color-hover: #757575;
-  --side-nav-color: #262626;
-  --side-nav-hover-color: #212121;
-  --side-nav-active-color: #303030;
-  --search-bar-color: #262626;
+  --card-bg-color: #11151f;
+  --secondary-card-bg-color: #0c1018;
+  --scrollbar-color: #262c38;
+  --scrollbar-color-hover: #3b4352;
+  --side-nav-color: #0d1119;
+  --side-nav-hover-color: #171c27;
+  --side-nav-active-color: #222937;
+  --search-bar-color: #0b0f16;
 }
 
 .black {
@@ -2053,6 +2073,108 @@ it can be safely elided. This looks quite pleasant on this theme. */
   --accent-color-active: #ad0c2e;
   --accent-color-light: #e64e71;
   --accent-color-visited: #810922;
+}
+
+
+/*************** AEGISTUBE SOUL ACCENTS ***************/
+
+/*
+  The persisted `aegisAccentKey` is applied to `data-aegis-accent` by the
+  AegisTube shell. These tokens deliberately override FreeTube's legacy
+  primary / secondary color pair so one Soul flows through every real view.
+*/
+body:is(
+  [data-aegis-accent='ember'],
+  [data-aegis-accent='wraith'],
+  [data-aegis-accent='moss'],
+  [data-aegis-accent='ashen-gold'],
+  [data-aegis-accent='wisp']
+) {
+  --primary-text-color: #eef1f5;
+  --secondary-text-color: #cfd3da;
+  --tertiary-text-color: #8891a0;
+  --title-color: var(--aegis-accent-light);
+  --bg-color: var(--aegis-void);
+  --card-bg-color: var(--aegis-panel);
+  --secondary-card-bg-color: var(--aegis-panel-strong);
+  --scrollbar-color: #29303d;
+  --scrollbar-color-hover: var(--aegis-accent-dark);
+  --side-nav-color: #090d14;
+  --side-nav-hover-color: rgb(255 255 255 / 5%);
+  --side-nav-active-color: var(--aegis-accent-wash);
+  --side-nav-active-text-color: var(--aegis-accent-light);
+  --search-bar-color: #0b0f16;
+  --favorite-icon-color: var(--aegis-accent-light);
+  --link-color: var(--aegis-accent-light);
+  --link-visited-color: var(--aegis-accent);
+  --logo-primary-color: var(--primary-text-color);
+  --logo-secondary-color: var(--aegis-accent);
+  --logo-tertiary-color: var(--primary-text-color);
+  --primary-color: var(--aegis-accent) !important;
+  --primary-color-hover: var(--aegis-accent-light) !important;
+  --primary-color-active: var(--aegis-accent-dark) !important;
+  --text-with-main-color: var(--aegis-on-accent) !important;
+  --accent-color-rgb: var(--aegis-accent-rgb) !important;
+  --accent-color: rgb(var(--aegis-accent-rgb)) !important;
+  --accent-color-hover: var(--aegis-accent-light) !important;
+  --accent-color-active: var(--aegis-accent-dark) !important;
+  --accent-color-light: var(--aegis-accent-light) !important;
+  --accent-color-visited: var(--aegis-accent-dark) !important;
+  --text-with-accent-color: var(--aegis-on-accent) !important;
+  --accent-color-opacity1: rgb(var(--aegis-accent-rgb) / 4%) !important;
+  --accent-color-opacity2: rgb(var(--aegis-accent-rgb) / 12%) !important;
+  --accent-color-opacity3: rgb(var(--aegis-accent-rgb) / 16%) !important;
+  --accent-color-opacity4: rgb(var(--aegis-accent-rgb) / 24%) !important;
+}
+
+body[data-aegis-accent='ember'] {
+  --aegis-accent: #e8262b;
+  --aegis-accent-rgb: 232 38 43;
+  --aegis-accent-light: #ff6b6b;
+  --aegis-accent-light-rgb: 255 107 107;
+  --aegis-accent-dark: #8c1216;
+  --aegis-accent-dark-rgb: 140 18 22;
+  --aegis-on-accent: #fff;
+}
+
+body[data-aegis-accent='wraith'] {
+  --aegis-accent: #2e8fff;
+  --aegis-accent-rgb: 46 143 255;
+  --aegis-accent-light: #8ff6ff;
+  --aegis-accent-light-rgb: 143 246 255;
+  --aegis-accent-dark: #0a4fd6;
+  --aegis-accent-dark-rgb: 10 79 214;
+  --aegis-on-accent: #061321;
+}
+
+body[data-aegis-accent='moss'] {
+  --aegis-accent: #2fcb8c;
+  --aegis-accent-rgb: 47 203 140;
+  --aegis-accent-light: #7ef2c0;
+  --aegis-accent-light-rgb: 126 242 192;
+  --aegis-accent-dark: #0f9e6a;
+  --aegis-accent-dark-rgb: 15 158 106;
+  --aegis-on-accent: #06160f;
+}
+
+body[data-aegis-accent='ashen-gold'] {
+  --aegis-accent: #d9a536;
+  --aegis-accent-rgb: 217 165 54;
+  --aegis-accent-light: #f4de9b;
+  --aegis-accent-light-rgb: 244 222 155;
+  --aegis-accent-dark: #b9821b;
+  --aegis-accent-dark-rgb: 185 130 27;
+  --aegis-on-accent: #1a1305;
+}
+
+body[data-aegis-accent='wisp'] {
+  --aegis-accent: #9b6bff;
+  --aegis-accent-rgb: 155 107 255;
+  --aegis-accent-light: #c9a6ff;
+  --aegis-accent-light-rgb: 201 166 255;
+  --aegis-accent-dark: #6c3bd6;
+  --aegis-accent-dark-rgb: 108 59 214;
+  --aegis-on-accent: #160d2e;
 }
 
 /*************** DESTRUCTIVE THEME COLOR OVERRIDES ***************/

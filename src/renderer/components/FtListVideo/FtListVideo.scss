@@ -54,6 +54,216 @@
   margin-inline-start: 0;
 }
 
+.aegisItem.ft-list-item {
+  border: 1px solid transparent;
+  border-radius: 10px;
+  padding: 0;
+  transition: background-color 140ms ease, border-color 140ms ease, transform 140ms ease;
+
+  .videoThumbnail {
+    background: #171a22;
+    border: 1px solid var(--aegis-hairline);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  .thumbnailLink:hover {
+    outline: none;
+  }
+
+  .thumbnailImage {
+    object-fit: cover;
+  }
+
+  .videoDuration {
+    background: rgb(0 0 0 / 75%);
+    border-radius: 4px;
+    color: #fff;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 10.5px;
+    font-weight: 600;
+    margin-block-end: 6px;
+    margin-inline-end: 6px;
+    opacity: 1;
+    padding-block: 2px;
+    padding-inline: 5px;
+  }
+
+  .watchedProgressBar {
+    background: var(--aegis-accent);
+    block-size: 3px;
+    box-shadow: 0 0 12px rgb(var(--aegis-accent-rgb) / 44%);
+  }
+
+  .videoWatched {
+    backdrop-filter: blur(8px);
+    background: rgb(7 9 14 / 75%);
+    color: #dfe2e8;
+    font-size: 10.5px;
+    padding-block: 4px;
+    padding-inline: 6px;
+  }
+
+  .videoTag {
+    background: rgb(var(--aegis-accent-rgb) / 10%);
+    border: 1px solid var(--aegis-accent-border);
+    border-radius: 4px;
+    color: var(--aegis-accent-light);
+  }
+
+  &.grid {
+    block-size: auto;
+    min-block-size: 0;
+    padding-block-end: 0;
+
+    .videoThumbnail,
+    .channelThumbnail {
+      padding-block-end: 0;
+    }
+
+    .info {
+      padding-block: 9px 2px;
+      padding-inline: 2px;
+    }
+
+    .title {
+      color: #eef1f5;
+      font-size: 13.5px;
+      font-weight: 600;
+      line-height: 1.35;
+    }
+
+    .h3Title {
+      display: -webkit-box;
+      overflow: hidden;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+    }
+
+    .infoLine {
+      color: #6b7280;
+      font-size: 11.5px;
+      line-height: 1.45;
+      margin-block-start: 4px;
+    }
+
+    .channelName {
+      color: var(--aegis-accent-light);
+      font-size: 12px;
+    }
+  }
+
+  &.list {
+    align-items: center;
+    gap: 14px;
+    grid-template: 'grabBar thumbnail info' auto / auto 170px minmax(0, 1fr);
+    padding-block: 9px;
+    padding-inline: 10px;
+
+    &:hover,
+    &:focus-within {
+      background: rgb(255 255 255 / 4%);
+      border-color: var(--aegis-hairline);
+    }
+
+    .videoThumbnail,
+    .channelThumbnail {
+      inline-size: 170px;
+      margin-inline-end: 0;
+      max-inline-size: 28vw;
+    }
+
+    .thumbnailImage,
+    .thumbnailLink {
+      inline-size: 100%;
+    }
+
+    .info {
+      min-inline-size: 0;
+    }
+
+    .title {
+      color: #eef1f5;
+      font-size: 13.5px;
+      font-weight: 600;
+      line-height: 1.3;
+    }
+
+    .infoLine {
+      color: #6b7280;
+      font-size: 11.5px;
+      margin-block-start: 4px;
+    }
+
+    .channelName {
+      color: var(--aegis-accent-light);
+      font-size: 12px;
+    }
+
+    .description {
+      color: #8891a0;
+      font-size: 12px;
+      margin-block-start: 6px;
+    }
+  }
+
+  &.recommendation,
+  &.watchPlaylistItem {
+    border-radius: 8px;
+    gap: 9px;
+    grid-template: 'thumbnail info' auto / minmax(100px, 120px) minmax(0, 1fr);
+    padding: 5px;
+
+    .videoThumbnail {
+      inline-size: 100%;
+      margin-inline-end: 0;
+      max-inline-size: none;
+    }
+
+    .thumbnailImage {
+      block-size: auto;
+      inline-size: 100%;
+    }
+
+    .title {
+      font-size: 12.5px;
+      line-height: 1.3;
+    }
+
+    .infoLine {
+      font-size: 11px;
+      margin-block-start: 3px;
+    }
+  }
+
+  &.watched {
+    background: rgb(255 255 255 / 2%);
+  }
+}
+
+@media only screen and (width <= 680px) {
+  .aegisItem.ft-list-item.list {
+    gap: 10px;
+    grid-template: 'thumbnail info' auto / minmax(108px, 36vw) minmax(0, 1fr);
+    padding-inline: 4px;
+
+    .grabBar {
+      display: none;
+    }
+
+    .videoThumbnail,
+    .channelThumbnail {
+      inline-size: 100%;
+      max-inline-size: none;
+    }
+
+    .description,
+    .videoTagLine {
+      display: none;
+    }
+  }
+}
+
 .deArrowToggleButton {
   border-radius: 50%;
   cursor: pointer;

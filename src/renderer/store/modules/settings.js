@@ -157,16 +157,33 @@ const defaultSideEffectsTriggerId = settingId =>
   'trigger' + capitalize(settingId) + 'SideEffects'
 /*****/
 
+export const AEGIS_ACCENT_KEYS = Object.freeze([
+  'ember',
+  'wraith',
+  'moss',
+  'ashen-gold',
+  'wisp',
+])
+
+const DEFAULT_AEGIS_ACCENT_KEY = AEGIS_ACCENT_KEYS[0]
+const normalizeAegisAccentKey = value =>
+  AEGIS_ACCENT_KEYS.includes(value) ? value : DEFAULT_AEGIS_ACCENT_KEY
+
 const state = {
+  aegisAccentKey: DEFAULT_AEGIS_ACCENT_KEY,
   autoplayPlaylists: true,
   autoplayVideos: true,
   backendFallback: false,
-  backendPreference: !process.env.SUPPORTS_LOCAL_API ? 'invidious' : 'local',
+  // The standalone hosted page remains on Invidious. The authenticated
+  // AegisOS frame switches to the bundled local extractor during startup.
+  backendPreference: !process.env.SUPPORTS_LOCAL_API || process.env.AEGISOS_WEB_EDITION ? 'invidious' : 'local',
   barColor: false,
-  checkForUpdates: true,
-  baseTheme: 'system',
-  mainColor: 'Red',
-  secColor: 'Blue',
+  // Modified defaults for the AegisOS web edition. Existing user choices in
+  // IndexedDB still win after the first launch.
+  checkForUpdates: false,
+  baseTheme: 'dark',
+  mainColor: 'Amber',
+  secColor: 'Purple',
   defaultAutoplayInterruptionIntervalHours: 3,
   defaultCaptionSettings: '{}',
   defaultInterval: 5,
@@ -201,21 +218,21 @@ const state = {
   hideChannelSubscriptions: false,
   hideCommentLikes: false,
   hideCommentPhotos: false,
-  hideComments: false,
+  hideComments: true,
   hideFeaturedChannels: false,
   channelsHidden: '[]',
   forbiddenTitles: '[]',
   showAddedChannelsHidden: true,
   showAddedForbiddenTitles: true,
   hideVideoDescription: false,
-  hideLiveChat: false,
+  hideLiveChat: true,
   hideLiveStreams: false,
   hideHeaderLogo: false,
   hidePlaylists: false,
   hidePopularVideos: false,
   hideRecommendedVideos: false,
   hideSearchBar: false,
-  hideSharingActions: false,
+  hideSharingActions: true,
   hideSubscriptionsVideos: false,
   hideSubscriptionsShorts: false,
   hideSubscriptionsLive: false,
@@ -231,7 +248,7 @@ const state = {
   hideLabelsSideBar: false,
   hideChapters: false,
   showDistractionFreeTitles: false,
-  landingPage: 'subscriptions',
+  landingPage: 'popular',
   listType: 'grid',
   maxVideoPlaybackRate: 3,
   onlyShowLatestFromChannel: false,
@@ -290,7 +307,7 @@ const state = {
   useProxy: false,
   userPlaylistSortOrder: 'date_added_descending',
   useRssFeeds: false,
-  useSponsorBlock: false,
+  useSponsorBlock: true,
   videoVolumeMouseScroll: false,
   videoPlaybackRateMouseScroll: false,
   videoSkipMouseScroll: false,
@@ -458,9 +475,24 @@ const customState = {
 const customGetters = {
 }
 
-const customMutations = {}
+const customMutations = {
+  setAegisAccentKey: (state, value) => {
+    state.aegisAccentKey = normalizeAegisAccentKey(value)
+  },
+}
 
 const customActions = {
+  updateAegisAccentKey: async ({ commit }, value) => {
+    const normalizedValue = normalizeAegisAccentKey(value)
+
+    try {
+      await DBSettingHandlers.upsert('aegisAccentKey', normalizedValue)
+      commit('setAegisAccentKey', normalizedValue)
+    } catch (errMessage) {
+      console.error(errMessage)
+    }
+  },
+
   grabUserSettings: async ({ commit, dispatch, state }) => {
     try {
       const userSettings = await DBSettingHandlers.find()

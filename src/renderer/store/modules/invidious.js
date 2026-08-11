@@ -1,10 +1,19 @@
 import { base64EncodeUtf8, createWebURL, fetchWithTimeout, randomArrayItem } from '../../helpers/utils'
+import { getAegisProxyOrigins } from '../../helpers/aegisBridge'
 
 const state = {
   currentInvidiousInstance: '',
   currentInvidiousInstanceAuthorization: null,
   currentInvidiousInstanceUrl: '',
   invidiousInstancesList: null
+}
+
+function normalizedOrigin(value) {
+  try {
+    return new URL(value).origin
+  } catch {
+    return ''
+  }
 }
 
 const getters = {
@@ -26,24 +35,39 @@ const getters = {
 }
 
 const actions = {
-  async fetchInvidiousInstancesFromFile({ commit }) {
+  async fetchInvidiousInstancesFromFile({ commit, dispatch }) {
     const url = createWebURL('/static/invidious-instances.json')
+    const proxyOrigins = process.env.AEGISOS_WEB_EDITION
+      ? await getAegisProxyOrigins()
+      : null
 
     const fileData = await (await fetch(url)).json()
     const instances = fileData.filter(e => {
-      return process.env.SUPPORTS_LOCAL_API || e.cors
+      const origin = e.url.replace(/\/$/, '')
+      return (process.env.SUPPORTS_LOCAL_API || e.cors) &&
+        (proxyOrigins === null || proxyOrigins.includes(origin))
     }).map(e => {
       return e.url
     })
 
     commit('setInvidiousInstancesList', instances)
+    if (process.env.AEGISOS_WEB_EDITION) {
+      dispatch('reconcileCurrentInvidiousInstance')
+    }
   },
 
   /// fetch invidious instances from site and overwrite static file.
-  async fetchInvidiousInstances({ commit }) {
+  async fetchInvidiousInstances({ commit, dispatch }) {
     const requestUrl = 'https://api.invidious.io/instances.json'
+    const timeout = process.env.AEGISOS_WEB_EDITION ? 6_000 : 15_000
+    const proxyOrigins = process.env.AEGISOS_WEB_EDITION
+      ? await getAegisProxyOrigins()
+      : null
     try {
-      const response = await fetchWithTimeout(15_000, requestUrl)
+      const response = await fetchWithTimeout(timeout, requestUrl)
+      if (!response.ok) {
+        throw new Error(`Invidious instance directory returned HTTP ${response.status}`)
+      }
       const json = await response.json()
       const instances = json.filter((instance) => {
         return !(instance[0].includes('.onion') ||
@@ -52,16 +76,21 @@ const actions = {
           (!process.env.SUPPORTS_LOCAL_API && !instance[1].cors))
       }).map((instance) => {
         return instance[1].uri.replace(/\/$/, '')
+      }).filter((origin) => {
+        return proxyOrigins === null || proxyOrigins.includes(origin)
       })
 
       if (instances.length !== 0) {
         commit('setInvidiousInstancesList', instances)
+        if (process.env.AEGISOS_WEB_EDITION) {
+          dispatch('reconcileCurrentInvidiousInstance')
+        }
       } else {
         console.warn('using static file for invidious instances')
       }
     } catch (err) {
       if (err.name === 'TimeoutError') {
-        console.error('Fetching the Invidious instance list timed out after 15 seconds. Falling back to local copy.')
+        console.error(`Fetching the Invidious instance list timed out after ${timeout / 1000} seconds. Falling back to local copy.`)
       } else {
         console.error(err)
       }
@@ -70,7 +99,43 @@ const actions = {
 
   setRandomCurrentInvidiousInstance({ commit, state }) {
     const instanceList = state.invidiousInstancesList
-    commit('setCurrentInvidiousInstance', randomArrayItem(instanceList))
+    const instance = Array.isArray(instanceList) && instanceList.length > 0
+      ? randomArrayItem(instanceList)
+      : ''
+
+    commit('setCurrentInvidiousInstance', instance)
+    return instance
+  },
+
+  setNextCurrentInvidiousInstance({ commit, state }, failedInstance) {
+    const instanceList = Array.isArray(state.invidiousInstancesList)
+      ? state.invidiousInstancesList
+      : []
+    const alternatives = instanceList.filter(instance => instance !== failedInstance)
+    const instance = alternatives.length > 0 ? randomArrayItem(alternatives) : ''
+
+    if (instance !== '') {
+      commit('setCurrentInvidiousInstance', instance)
+    }
+    return instance
+  },
+
+  reconcileCurrentInvidiousInstance({ commit, state }) {
+    const instanceList = Array.isArray(state.invidiousInstancesList)
+      ? state.invidiousInstancesList
+      : []
+    const currentOrigin = normalizedOrigin(state.currentInvidiousInstanceUrl)
+    const currentIsApproved = currentOrigin !== '' && instanceList.some(instance => {
+      return normalizedOrigin(instance) === currentOrigin
+    })
+
+    if (currentIsApproved) {
+      return state.currentInvidiousInstanceUrl
+    }
+
+    const instance = instanceList[0] ?? ''
+    commit('setCurrentInvidiousInstance', instance)
+    return instance
   }
 }
 
