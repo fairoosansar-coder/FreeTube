@@ -2,5 +2,13 @@
   {
     "url": "https://inv.zoomerville.com",
     "cors": true
+  },
+  {
+    "url": "https://inv.nadeko.net",
+    "cors": true
+  },
+  {
+    "url": "https://inv.zzls.xyz",
+    "cors": true
   }
 ]
