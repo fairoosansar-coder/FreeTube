@@ -65,6 +65,10 @@ or service and is not endorsed by the FreeTube project.
   discovery failures do not block the local shell or native playback path.
 - Resolve the live CORS-capable Invidious pool before mounting the first route,
   time out stalled requests, and retry once with a refreshed instance.
+- Ship multiple independently checked CORS-capable public fallback instances in
+  the web artifact. The hosted build advances to another instance after a
+  failed request; these public services are a best-effort browser path, not a
+  substitute for AegisOS's authenticated native relay.
 - When embedded by the installed AegisOS shell, use its versioned
   `postMessage` bridge for narrowly scoped `/api/v1/...` JSON requests and
   constrain instance selection to the origins advertised by that relay;
