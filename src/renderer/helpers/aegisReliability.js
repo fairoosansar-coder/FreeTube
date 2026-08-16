@@ -1,167 +1,203 @@
 const CANONICAL_THUMBNAIL_HOSTS = new Set([
-  'i.ytimg.com',
-  'i0.ytimg.com',
-  'i1.ytimg.com',
-  'i2.ytimg.com',
-  'i3.ytimg.com',
-  'i4.ytimg.com',
+  'i.ytimg.com', 'i0.ytimg.com', 'i1.ytimg.com', 'i2.ytimg.com', 'i3.ytimg.com', 'i4.ytimg.com',
 ])
 
-const PRIVATE_HOST_PATTERN = /^(?:localhost|(?:0|10|127)\.|169\.254\.|172\.(?:1[6-9]|2\d|3[0-1])\.|192\.168\.|::1$|fc|fd)/i
+const CAPABILITIES = ['discovery', 'videoDetail', 'formats', 'streamProbe', 'comments', 'optional', 'nativeRequired', 'nativeOptional']
 
-function isSafeProviderOrigin(value) {
+export class AegisCapabilityError extends Error {
+  constructor(capability, code, message) {
+    super(message)
+    this.name = 'AegisCapabilityError'
+    this.capability = capability
+    this.code = code
+  }
+}
+
+function stripIpv6Brackets(hostname) {
+  return hostname.replaceAll(/^\[|\]$/g, '').toLowerCase()
+}
+
+function parseIpv4(hostname) {
+  const parts = hostname.split('.')
+  if (parts.length !== 4 || parts.some(part => !/^\d+$/.test(part))) return null
+  const values = parts.map(Number)
+  return values.every(value => value >= 0 && value <= 255) ? values : null
+}
+
+function isBlockedIpv4(parts) {
+  const [a, b] = parts
+  return a === 0 || a === 10 || a === 127 || a >= 224 ||
+    (a === 100 && b >= 64 && b <= 127) ||
+    (a === 169 && b === 254) ||
+    (a === 172 && b >= 16 && b <= 31) ||
+    (a === 192 && (b === 0 || b === 168)) ||
+    (a === 198 && (b === 18 || b === 19 || b === 51)) ||
+    (a === 203 && b === 0)
+}
+
+function isBlockedHostname(hostname) {
+  const host = stripIpv6Brackets(hostname)
+  if (host === 'localhost' || host.endsWith('.localhost')) return true
+  const ipv4 = parseIpv4(host)
+  if (ipv4 !== null) return isBlockedIpv4(ipv4)
+  if (host === '::1' || host.startsWith('fe80:') || host.startsWith('fc') || host.startsWith('fd')) return true
+  const mapped = host.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/)
+  return mapped !== null
+    ? isBlockedIpv4(parseIpv4(mapped[1]) ?? [0, 0, 0, 0])
+    : false
+}
+
+function parseApprovedProviderOrigin(value, approvedOrigins = []) {
   try {
     const url = new URL(value)
-    return url.protocol === 'https:' &&
-      url.username === '' &&
-      url.password === '' &&
-      !PRIVATE_HOST_PATTERN.test(url.hostname)
+    const approved = approvedOrigins.length === 0 || approvedOrigins.some(origin => {
+      try { return new URL(origin).origin === url.origin } catch { return false }
+    })
+    const safe = url.protocol === 'https:' && url.username === '' && url.password === '' &&
+      !isBlockedHostname(url.hostname) && approved
+    return safe
+      ? url
+      : null
   } catch {
-    return false
+    return null
   }
 }
 
 function isCanonicalThumbnail(url) {
-  return url.protocol === 'https:' && CANONICAL_THUMBNAIL_HOSTS.has(url.hostname) &&
-    url.pathname.startsWith('/vi/')
+  return url.protocol === 'https:' && CANONICAL_THUMBNAIL_HOSTS.has(url.hostname) && url.pathname.startsWith('/vi/')
 }
 
-/**
- * Converts an Invidious thumbnail asset to a deterministic, browser-safe URL.
- * Relative or provider-bound `/vi/` paths are deliberately mapped to YouTube's
- * canonical HTTPS thumbnail host, so a later provider switch cannot break cards.
- * @param {unknown} value
- * @param {string} providerOrigin
- * @param {string} [fallback='']
- * @returns {string}
- */
-export function normalizeAegisThumbnailUrl(value, providerOrigin, fallback = '') {
-  if (typeof value !== 'string' || value.trim() === '' || !isSafeProviderOrigin(providerOrigin)) {
-    return fallback
-  }
-
-  let provider
+export function isApprovedAegisAssetUrl(value, providerOrigin = '', approvedOrigins = []) {
+  if (typeof value !== 'string' || value.trim() === '') return false
   let url
-  try {
-    provider = new URL(providerOrigin)
-    url = new URL(value, provider)
-  } catch {
-    return fallback
-  }
+  try { url = new URL(value) } catch { return false }
+  if (url.protocol !== 'https:' || url.username || url.password || isBlockedHostname(url.hostname)) return false
+  if (isCanonicalThumbnail(url)) return true
+  const provider = parseApprovedProviderOrigin(providerOrigin, approvedOrigins)
+  return provider !== null && url.origin === provider.origin && url.pathname.startsWith('/ggpht/')
+}
 
-  if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password ||
-    PRIVATE_HOST_PATTERN.test(url.hostname)) {
-    return fallback
-  }
-
-  if (url.origin !== provider.origin && !isCanonicalThumbnail(url)) {
-    return fallback
-  }
-
-  if (url.pathname.startsWith('/vi/')) {
+/** Normalize only validated provider assets to immutable canonical or approved HTTPS URLs. */
+export function normalizeAegisThumbnailUrl(value, providerOrigin, fallback = '', approvedOrigins = []) {
+  if (typeof value !== 'string' || value.trim() === '') return fallback
+  const provider = parseApprovedProviderOrigin(providerOrigin, approvedOrigins)
+  let url
+  try { url = new URL(value, provider ?? undefined) } catch { return fallback }
+  if ((url.protocol !== 'http:' && url.protocol !== 'https:') || url.username || url.password || isBlockedHostname(url.hostname)) return fallback
+  if (provider !== null && url.pathname.startsWith('/vi/') && url.origin === provider.origin) {
     return new URL(`${url.pathname}${url.search}`, 'https://i.ytimg.com').toString()
   }
-
-  if (isCanonicalThumbnail(url)) {
-    return url.toString()
-  }
-
-  if (url.origin === provider.origin && url.protocol === 'https:' && url.pathname.startsWith('/ggpht/')) {
-    return url.toString()
-  }
-
+  if (isCanonicalThumbnail(url)) return url.toString()
+  if (provider !== null && url.origin === provider.origin && url.protocol === 'https:' && url.pathname.startsWith('/ggpht/')) return url.toString()
   return fallback
 }
 
-/**
- * Picks the normalized thumbnail already associated with the fetched record.
- * No current-provider reconstruction occurs here.
- * @param {unknown} thumbnails
- * @param {string} [fallback='']
- * @returns {string}
- */
-export function selectNormalizedThumbnail(thumbnails, fallback = '') {
+/** Final renderer boundary: never return an arbitrary non-empty record field. */
+export function selectNormalizedThumbnail(thumbnails, fallback = '', providerOrigin = '', approvedOrigins = []) {
   if (!Array.isArray(thumbnails)) return fallback
   const selected = thumbnails.find(thumbnail => {
-    return thumbnail && typeof thumbnail.url === 'string' && thumbnail.url.trim() !== '' && thumbnail.url !== fallback
+    return thumbnail && isApprovedAegisAssetUrl(thumbnail.url, providerOrigin, approvedOrigins)
   })
   return selected?.url ?? fallback
 }
 
-/**
- * Produces a safe canonical fallback for locally stored videos without binding
- * it to an Invidious provider.
- * @param {unknown} videoId
- * @param {string} [fallback='']
- * @returns {string}
- */
-export function canonicalVideoThumbnail(videoId, fallback = '') {
-  return typeof videoId === 'string' && /^[A-Za-z0-9_-]{11}$/.test(videoId)
-    ? `https://i.ytimg.com/vi/${videoId}/mqdefault.jpg`
+export function canonicalVideoThumbnail(videoId, variant = 'mqdefault', fallback = '') {
+  return typeof videoId === 'string' && /^[A-Za-z0-9_-]{11}$/.test(videoId) &&
+    ['default', 'mqdefault', 'mq1', 'mq2', 'mq3', 'maxres1', 'maxres2', 'maxres3', 'maxresdefault'].includes(variant)
+    ? `https://i.ytimg.com/vi/${videoId}/${variant}.jpg`
     : fallback
 }
 
-export function createProviderCapabilityState() {
+function createCapability(status = 'unknown') {
   return {
-    discoveryHealthy: null,
-    videoDetailHealthy: null,
-    formatsHealthy: null,
-    streamProbeHealthy: null,
+    status,
+    failureCount: 0,
+    cooldownUntil: 0,
     lastSuccessAt: null,
     lastFailureAt: null,
-    consecutiveFailures: 0,
-    cooldownUntil: 0,
     lastFailureReason: null,
     latencyMs: null,
   }
 }
 
-export function nextProviderCapabilityState(previous, { capability, success, latencyMs = null, reason = null, now = Date.now() }) {
-  const state = { ...createProviderCapabilityState(), ...previous }
-  if (success) {
-    state[capability] = true
-    state.lastSuccessAt = now
-    state.consecutiveFailures = 0
-    state.cooldownUntil = 0
-    state.lastFailureReason = null
-    if (typeof latencyMs === 'number' && Number.isFinite(latencyMs)) state.latencyMs = latencyMs
-    return state
+export function createProviderCapabilityState() {
+  return {
+    capabilities: Object.fromEntries(CAPABILITIES.map(capability => [capability, createCapability()])),
+    discoveryHealthy: null,
+    videoDetailHealthy: null,
+    formatsHealthy: null,
+    streamProbeHealthy: null,
   }
+}
 
-  state[capability] = false
-  state.lastFailureAt = now
-  state.consecutiveFailures += 1
-  state.lastFailureReason = reason || 'unknown'
-  state.cooldownUntil = now + Math.min(300000, 5000 * 2 ** (state.consecutiveFailures - 1))
+function capabilityKey(value) {
+  return value.endsWith('Healthy') ? value.replace('Healthy', '') : value
+}
+
+export function nextProviderCapabilityState(previous, { capability, success, latencyMs = null, reason = null, now = Date.now(), halfOpen = false }) {
+  const state = { ...createProviderCapabilityState(), ...previous, capabilities: { ...createProviderCapabilityState().capabilities, ...previous?.capabilities } }
+  const key = capabilityKey(capability)
+  const prior = state.capabilities[key] ?? createCapability()
+  const next = { ...prior }
+  if (success) {
+    next.status = 'healthy'
+    next.failureCount = 0
+    next.cooldownUntil = 0
+    next.lastSuccessAt = now
+    next.lastFailureReason = null
+    if (typeof latencyMs === 'number' && Number.isFinite(latencyMs)) next.latencyMs = latencyMs
+  } else {
+    next.status = halfOpen ? 'cooldown' : 'failed'
+    next.failureCount += 1
+    next.lastFailureAt = now
+    next.lastFailureReason = reason || 'unknown'
+    next.cooldownUntil = now + Math.min(300000, 5000 * 2 ** (next.failureCount - 1))
+  }
+  state.capabilities[key] = next
+  if (key === 'discovery' || key === 'videoDetail' || key === 'formats' || key === 'streamProbe') state[`${key}Healthy`] = success
   return state
 }
 
-export function providerEligible(state, capability, now = Date.now()) {
+function capabilityEligible(entry, now, allowHalfOpen) {
+  if (entry.status === 'healthy') return true
+  if (entry.status === 'unknown') return allowHalfOpen
+  return entry.cooldownUntil <= now && allowHalfOpen
+}
+
+export function providerEligible(state, capability, now = Date.now(), allowHalfOpen = false) {
   const value = { ...createProviderCapabilityState(), ...state }
-  if (value.cooldownUntil > now) return false
+  const capabilities = { ...createProviderCapabilityState().capabilities, ...value.capabilities }
   if (capability === 'playback') {
-    return value.videoDetailHealthy !== false && value.formatsHealthy !== false
+    return capabilityEligible(capabilities.videoDetail, now, allowHalfOpen) &&
+      capabilityEligible(capabilities.formats, now, allowHalfOpen) &&
+      capabilityEligible(capabilities.streamProbe, now, allowHalfOpen)
   }
-  return value.discoveryHealthy !== false
+  return capabilityEligible(capabilities.discovery, now, allowHalfOpen)
 }
 
 export function selectDeterministicProvider(origins, capabilities, failedOrigin = '', capability = 'discovery', now = Date.now()) {
-  return [...origins]
-    .filter(origin => origin !== failedOrigin)
-    .sort((a, b) => a.localeCompare(b))
-    .find(origin => providerEligible(capabilities[origin], capability, now)) ?? ''
+  const ordered = [...origins].filter(origin => origin !== failedOrigin).sort((a, b) => a.localeCompare(b))
+  return ordered.find(origin => providerEligible(capabilities[origin], capability, now, false)) ??
+    ordered.find(origin => providerEligible(capabilities[origin], capability, now, true)) ?? ''
 }
 
-export function classifyAegisVideoError(error) {
+export function hasConsumerUsableFormats(result) {
+  const combined = Array.isArray(result.formatStreams) && result.formatStreams.some(format => typeof format.url === 'string' && format.url !== '' && typeof format.mimeType === 'string' && format.mimeType.includes('video/'))
+  const adaptive = Array.isArray(result.adaptiveFormats) && result.adaptiveFormats.some(format => typeof format.url === 'string' && format.url !== '' && typeof format.mimeType === 'string' && (format.mimeType.includes('video/') || format.mimeType.includes('audio/')))
+  const hls = typeof result.hlsUrl === 'string' && result.hlsUrl.startsWith('https://') && result.liveNow === true && adaptive
+  return combined || adaptive || hls
+}
+
+export function selectVideoDetailRoute({ nativeBridgeV3, backendPreference }) {
+  return nativeBridgeV3 ? 'native' : backendPreference === 'invidious' ? 'invidious' : 'local'
+}
+
+export function classifyAegisVideoError(error, operation = 'videoDetail') {
+  if (error instanceof AegisCapabilityError) return { category: operation === 'comments' || operation === 'optional' ? 'optional' : 'fatal', diagnosticId: error.code }
   const message = error instanceof Error ? error.message : String(error)
-  if (/unsupported YouTube API operation/i.test(message)) {
-    return { category: 'optional', diagnosticId: 'AE-OPTIONAL-UNSUPPORTED' }
-  }
-  if (/HTTP 403|Endpoint disabled|No public Invidious instance/i.test(message)) {
-    return { category: 'provider', diagnosticId: 'AE-PROVIDER-DETAIL' }
-  }
-  if (/bridge|native video/i.test(message)) {
-    return { category: 'fatal', diagnosticId: 'AE-NATIVE-BRIDGE' }
-  }
+  if (operation === 'comments' || operation === 'optional') return { category: 'optional', diagnosticId: 'AE-OPTIONAL-FAILED' }
+  if (/unsupported YouTube API operation/i.test(message)) return { category: 'optional', diagnosticId: 'AE-OPTIONAL-UNSUPPORTED' }
+  if (/HTTP 403|Endpoint disabled/i.test(message)) return { category: 'fatal', diagnosticId: 'AE-PROVIDER-DETAIL' }
+  if (/bridge|native video/i.test(message)) return { category: 'fatal', diagnosticId: 'AE-NATIVE-BRIDGE' }
   return { category: 'fatal', diagnosticId: 'AE-PLAYBACK-UNKNOWN' }
 }

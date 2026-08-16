@@ -2,7 +2,11 @@ import store from '../../store/index'
 import { calculatePublishedDate, fetchWithTimeout, getRelativeTimeFromDate } from '../utils'
 import { isNullOrEmpty } from '../strings'
 import { fetchThroughAegisProxy } from '../aegisBridge'
-import { normalizeAegisThumbnailUrl } from '../aegisReliability'
+import {
+  AegisCapabilityError,
+  hasConsumerUsableFormats,
+  normalizeAegisThumbnailUrl,
+} from '../aegisReliability'
 import autolinker from 'autolinker'
 import { FormatUtils, Misc, Player } from 'youtubei.js'
 
@@ -114,26 +118,30 @@ async function invidiousAPICall(
         latencyMs,
       })
       if (resource === 'videos') {
-        const hasFormats = Array.isArray(result.formatStreams) && result.formatStreams.length > 0 ||
-          Array.isArray(result.adaptiveFormats) && result.adaptiveFormats.length > 0 ||
-          typeof result.hlsUrl === 'string' && result.hlsUrl !== ''
+        const hasFormats = hasConsumerUsableFormats(result)
         await store.dispatch('recordInvidiousProviderCapability', {
           origin: instance,
-          capability: 'formatsHealthy',
+          capability: 'formats',
           success: hasFormats,
           latencyMs,
           reason: hasFormats ? null : 'video detail contained no usable formats'
         })
+        if (!hasFormats) {
+          throw new AegisCapabilityError('formats', 'AE-PROVIDER-NO-USABLE-FORMATS', 'Video detail contained no consumer-usable formats')
+        }
       }
+      attachInvidiousServingOrigin(result, instance)
       return result
     } catch (error) {
       lastError = error
-      await store.dispatch('recordInvidiousProviderCapability', {
-        origin: instance,
-        capability: resource === 'videos' ? 'videoDetailHealthy' : 'discoveryHealthy',
-        success: false,
-        reason: error.message || String(error)
-      })
+      if (!(error instanceof AegisCapabilityError && error.capability === 'formats')) {
+        await store.dispatch('recordInvidiousProviderCapability', {
+          origin: instance,
+          capability: resource === 'videos' ? 'videoDetail' : 'discovery',
+          success: false,
+          reason: error.message || String(error)
+        })
+      }
       const replacement = await store.dispatch('setNextCurrentInvidiousInstance', {
         failedInstance: instance,
         capability
@@ -1051,11 +1059,28 @@ function normalizeOneInvidiousVideoAttributes(video, fallbackAuthorId = null) {
   if (Array.isArray(video.videoThumbnails)) {
     video.videoThumbnails = video.videoThumbnails.map((thumbnail) => ({
       ...thumbnail,
-      url: normalizeAegisThumbnailUrl(thumbnail.url, getCurrentInstanceUrl())
+      url: normalizeAegisThumbnailUrl(thumbnail.url, video._aegisProviderOrigin ?? getCurrentInstanceUrl())
     }))
   }
 }
 
+function attachInvidiousServingOrigin(value, origin) {
+  if (value === null || typeof value !== 'object') return
+  if (Array.isArray(value)) {
+    value.forEach(item => attachInvidiousServingOrigin(item, origin))
+    return
+  }
+  value._aegisProviderOrigin = origin
+  if (Array.isArray(value.videoThumbnails)) {
+    value.videoThumbnails = value.videoThumbnails.map(thumbnail => ({
+      ...thumbnail,
+      url: normalizeAegisThumbnailUrl(thumbnail.url, origin),
+    }))
+  }
+  for (const child of Object.values(value)) {
+    if (child && typeof child === 'object' && child !== value.videoThumbnails) attachInvidiousServingOrigin(child, origin)
+  }
+}
 
 /**
  * @param {{

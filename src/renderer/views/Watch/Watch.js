@@ -38,7 +38,11 @@ import {
   mapInvidiousLegacyFormat,
   youtubeImageUrlToInvidious
 } from '../../helpers/api/invidious'
-import { classifyAegisVideoError } from '../../helpers/aegisReliability'
+import {
+  canonicalVideoThumbnail,
+  classifyAegisVideoError,
+  normalizeAegisThumbnailUrl,
+} from '../../helpers/aegisReliability'
 import { isAegisNativeExtractorExpected } from '../../helpers/aegisBridge'
 import { sortCaptions } from '../../helpers/player/utils'
 import { MANIFEST_TYPE_SABR } from '../../helpers/player/SabrManifestParser'
@@ -376,6 +380,10 @@ export default defineComponent({
       this.checkIfPlaylist()
       this.setViewingModeOnRouteChange()
 
+      if (isAegisNativeExtractorExpected()) {
+        await this.getVideoInformationLocal()
+        return
+      }
       switch (this.backendPreference) {
         case 'local':
           await this.getVideoInformationLocal()
@@ -445,7 +453,7 @@ export default defineComponent({
       // this has to be below checkIfPlaylist() as theatrePossible needs to know if there is a playlist or not
       this.setViewingModeOnFirstLoad()
 
-      if (!process.env.SUPPORTS_LOCAL_API || this.backendPreference === 'invidious') {
+      if (!isAegisNativeExtractorExpected() && (!process.env.SUPPORTS_LOCAL_API || this.backendPreference === 'invidious')) {
         this.getVideoInformationInvidious()
       } else {
         this.getVideoInformationLocal()
@@ -581,16 +589,16 @@ export default defineComponent({
 
         switch (this.thumbnailPreference) {
           case 'start':
-            this.thumbnail = `https://i.ytimg.com/vi/${this.videoId}/maxres1.jpg`
+            this.thumbnail = canonicalVideoThumbnail(this.videoId, 'maxres1')
             break
           case 'middle':
-            this.thumbnail = `https://i.ytimg.com/vi/${this.videoId}/maxres2.jpg`
+            this.thumbnail = canonicalVideoThumbnail(this.videoId, 'maxres2')
             break
           case 'end':
-            this.thumbnail = `https://i.ytimg.com/vi/${this.videoId}/maxres3.jpg`
+            this.thumbnail = canonicalVideoThumbnail(this.videoId, 'maxres3')
             break
           default:
-            this.thumbnail = result.basic_info.thumbnail?.[0].url ?? `https://i.ytimg.com/vi/${this.videoId}/maxresdefault.jpg`
+            this.thumbnail = normalizeAegisThumbnailUrl(result.basic_info.thumbnail?.[0].url, 'https://i.ytimg.com', canonicalVideoThumbnail(this.videoId, 'maxresdefault'))
             break
         }
 
@@ -1043,16 +1051,16 @@ export default defineComponent({
 
           switch (this.thumbnailPreference) {
             case 'start':
-              this.thumbnail = `${this.currentInvidiousInstanceUrl}/vi/${this.videoId}/maxres1.jpg`
+              this.thumbnail = canonicalVideoThumbnail(this.videoId, 'maxres1')
               break
             case 'middle':
-              this.thumbnail = `${this.currentInvidiousInstanceUrl}/vi/${this.videoId}/maxres2.jpg`
+              this.thumbnail = canonicalVideoThumbnail(this.videoId, 'maxres2')
               break
             case 'end':
-              this.thumbnail = `${this.currentInvidiousInstanceUrl}/vi/${this.videoId}/maxres3.jpg`
+              this.thumbnail = canonicalVideoThumbnail(this.videoId, 'maxres3')
               break
             default:
-              this.thumbnail = result.videoThumbnails[0].url
+              this.thumbnail = normalizeAegisThumbnailUrl(result.videoThumbnails?.[0]?.url, result._aegisProviderOrigin ?? this.currentInvidiousInstanceUrl, canonicalVideoThumbnail(this.videoId, 'maxresdefault'))
               break
           }
 

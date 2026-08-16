@@ -190,7 +190,6 @@ function parseInvidiousData() {
   channelId = props.data.authorId
   playlistId = props.data.playlistId
   videoCount = props.data.videoCount
-
 }
 
 function parseLocalData() {
