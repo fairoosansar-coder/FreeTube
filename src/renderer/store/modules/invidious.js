@@ -1,11 +1,17 @@
-import { base64EncodeUtf8, createWebURL, fetchWithTimeout, randomArrayItem } from '../../helpers/utils'
+import { base64EncodeUtf8, createWebURL, fetchWithTimeout } from '../../helpers/utils'
 import { getAegisProxyOrigins } from '../../helpers/aegisBridge'
+import {
+  createProviderCapabilityState,
+  nextProviderCapabilityState,
+  selectDeterministicProvider,
+} from '../../helpers/aegisReliability'
 
 const state = {
   currentInvidiousInstance: '',
   currentInvidiousInstanceAuthorization: null,
   currentInvidiousInstanceUrl: '',
-  invidiousInstancesList: null
+  invidiousInstancesList: null,
+  invidiousProviderCapabilities: {}
 }
 
 function normalizedOrigin(value) {
@@ -31,6 +37,10 @@ const getters = {
 
   getInvidiousInstancesList(state) {
     return state.invidiousInstancesList
+  },
+
+  getInvidiousProviderCapabilities(state) {
+    return state.invidiousProviderCapabilities
   }
 }
 
@@ -99,25 +109,39 @@ const actions = {
 
   setRandomCurrentInvidiousInstance({ commit, state }) {
     const instanceList = state.invidiousInstancesList
-    const instance = Array.isArray(instanceList) && instanceList.length > 0
-      ? randomArrayItem(instanceList)
+    const instance = Array.isArray(instanceList)
+      ? selectDeterministicProvider(instanceList, state.invidiousProviderCapabilities)
       : ''
 
     commit('setCurrentInvidiousInstance', instance)
     return instance
   },
 
-  setNextCurrentInvidiousInstance({ commit, state }, failedInstance) {
+  setNextCurrentInvidiousInstance({ commit, state }, input) {
+    const failedInstance = typeof input === 'string' ? input : input.failedInstance
+    const capability = typeof input === 'string' ? 'discovery' : input.capability
     const instanceList = Array.isArray(state.invidiousInstancesList)
       ? state.invidiousInstancesList
       : []
-    const alternatives = instanceList.filter(instance => instance !== failedInstance)
-    const instance = alternatives.length > 0 ? randomArrayItem(alternatives) : ''
+    const instance = selectDeterministicProvider(
+      instanceList,
+      state.invidiousProviderCapabilities,
+      failedInstance,
+      capability
+    )
 
     if (instance !== '') {
       commit('setCurrentInvidiousInstance', instance)
     }
     return instance
+  },
+
+  recordInvidiousProviderCapability({ commit, state }, payload) {
+    const previous = state.invidiousProviderCapabilities[payload.origin] ?? createProviderCapabilityState()
+    commit('setInvidiousProviderCapability', {
+      origin: payload.origin,
+      state: nextProviderCapabilityState(previous, payload)
+    })
   },
 
   reconcileCurrentInvidiousInstance({ commit, state }) {
@@ -180,6 +204,18 @@ const mutations = {
 
   setInvidiousInstancesList(state, value) {
     state.invidiousInstancesList = value
+    const next = {}
+    for (const origin of value ?? []) {
+      next[origin] = state.invidiousProviderCapabilities[origin] ?? createProviderCapabilityState()
+    }
+    state.invidiousProviderCapabilities = next
+  },
+
+  setInvidiousProviderCapability(state, { origin, state: capability }) {
+    state.invidiousProviderCapabilities = {
+      ...state.invidiousProviderCapabilities,
+      [origin]: capability
+    }
   }
 }
 

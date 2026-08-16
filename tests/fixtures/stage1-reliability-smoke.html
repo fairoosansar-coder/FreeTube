@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>AegisTube Stage 1 Fixture Smoke</title>
+    <style>
+      :root { color-scheme: dark; font-family: Inter, system-ui, sans-serif; background: #080b12; color: #eef3ff; }
+      body { margin: 0; padding: 36px; background: radial-gradient(circle at 20% 0%, #162447 0, #080b12 42%); }
+      main { max-width: 960px; margin: auto; padding: 28px; border: 1px solid #2b3b61; border-radius: 16px; background: #0e1422; box-shadow: 0 24px 80px #0008; }
+      h1 { margin: 0 0 8px; font-size: 28px; } p { color: #b7c3dd; } .meta { color: #7e91b7; font-size: 14px; }
+      .pass { color: #64df9b; } .fail { color: #ff7b7b; } table { width: 100%; border-collapse: collapse; margin-top: 22px; font-size: 14px; }
+      th, td { padding: 11px; border-bottom: 1px solid #25324f; text-align: left; vertical-align: top; } th { color: #9eb9f4; }
+      code { color: #c7d6ff; } .summary { margin-top: 20px; padding: 14px; border-radius: 10px; background: #101d31; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>AegisTube Stage 1 fixture smoke</h1>
+      <p>Deterministic browser fixture. It imports the shared reliability helper directly; it does not call a public provider.</p>
+      <p class="meta">Live provider and native AegisOS acceptance are intentionally NOT RUN.</p>
+      <table>
+        <thead><tr><th>Fixture</th><th>Expected</th><th>Actual</th><th>Status</th></tr></thead>
+        <tbody id="results"></tbody>
+      </table>
+      <div class="summary" id="summary">Running fixture…</div>
+    </main>
+    <script type="module">
+      import {
+        classifyAegisVideoError,
+        createProviderCapabilityState,
+        nextProviderCapabilityState,
+        normalizeAegisThumbnailUrl,
+        selectDeterministicProvider,
+      } from '../../src/renderer/helpers/aegisReliability.js'
+
+      const provider = 'https://inv.example.test'
+      const fallback = 'controlled-fallback'
+      const cases = [
+        ['Relative /vi asset', 'https://i.ytimg.com/vi/abcdefghijk/mqdefault.jpg', normalizeAegisThumbnailUrl('/vi/abcdefghijk/mqdefault.jpg', provider, fallback)],
+        ['Scheme-relative /vi asset', 'https://i.ytimg.com/vi/abcdefghijk/hqdefault.jpg', normalizeAegisThumbnailUrl('//inv.example.test/vi/abcdefghijk/hqdefault.jpg', provider, fallback)],
+        ['Canonical image asset', 'https://i.ytimg.com/vi/abcdefghijk/mqdefault.jpg', normalizeAegisThumbnailUrl('https://i.ytimg.com/vi/abcdefghijk/mqdefault.jpg', provider, fallback)],
+        ['Private IP rejected', fallback, normalizeAegisThumbnailUrl('https://192.168.1.1/vi/abcdefghijk/mqdefault.jpg', provider, fallback)],
+        ['Data URL rejected', fallback, normalizeAegisThumbnailUrl('data:image/png;base64,AA', provider, fallback)],
+      ]
+      const now = 1_000_000
+      const cooling = nextProviderCapabilityState(createProviderCapabilityState(), { capability: 'videoDetailHealthy', success: false, reason: 'HTTP 403', now })
+      cases.push(['Deterministic cooldown selection', 'https://z.example', selectDeterministicProvider(['https://z.example', 'https://a.example'], { 'https://a.example': cooling, 'https://z.example': createProviderCapabilityState() }, '', 'playback', now + 1)])
+      cases.push(['Provider error classification', 'AE-PROVIDER-DETAIL', classifyAegisVideoError(new Error('Endpoint disabled')).diagnosticId])
+
+      const rows = document.querySelector('#results')
+      let passCount = 0
+      for (const [name, expected, actual] of cases) {
+        const passed = expected === actual
+        if (passed) passCount += 1
+        const row = document.createElement('tr')
+        row.innerHTML = `<td>${name}</td><td><code>${expected}</code></td><td><code>${actual}</code></td><td class="${passed ? 'pass' : 'fail'}">${passed ? 'PASS' : 'FAIL'}</td>`
+        rows.append(row)
+      }
+      document.querySelector('#summary').innerHTML = `<strong class="${passCount === cases.length ? 'pass' : 'fail'}">${passCount}/${cases.length} PASS</strong> — deterministic client fixture only; no live provider success is claimed.`
+    </script>
+  </body>
+</html>

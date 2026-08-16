@@ -100,6 +100,7 @@ import FtIconButton from '../FtIconButton/FtIconButton.vue'
 import store from '../../store/index'
 
 import { showToast } from '../../helpers/utils'
+import { canonicalVideoThumbnail, normalizeAegisThumbnailUrl } from '../../helpers/aegisReliability.js'
 import thumbnailPlaceholder from '../../assets/img/thumbnail_placeholder.svg'
 
 const props = defineProps({
@@ -165,9 +166,6 @@ const playlistPageLinkTo = computed(() => ({
   },
 }))
 
-/** @type {import('vue').ComputedRef<'local' | 'invidious'>} */
-const backendPreference = computed(() => store.getters.getBackendPreference)
-
 /** @type {import('vue').ComputedRef<string>} */
 const currentInvidiousInstanceUrl = computed(() => store.getters.getCurrentInvidiousInstanceUrl)
 
@@ -182,18 +180,17 @@ if (isUserPlaylist.value) {
 function parseInvidiousData() {
   title = props.data.title
 
-  thumbnail = props.data.playlistThumbnail
-    .replace('https://i.ytimg.com', currentInvidiousInstanceUrl.value)
-    .replace('hqdefault', 'mqdefault')
+  thumbnail = normalizeAegisThumbnailUrl(
+    props.data.playlistThumbnail,
+    currentInvidiousInstanceUrl.value,
+    thumbnailPlaceholder
+  )
 
   channelName = props.data.author
   channelId = props.data.authorId
   playlistId = props.data.playlistId
   videoCount = props.data.videoCount
 
-  if (props.data.proxyThumbnail === false) {
-    thumbnail = props.data.playlistThumbnail
-  }
 }
 
 function parseLocalData() {
@@ -211,11 +208,7 @@ function parseUserData() {
   title = props.data.playlistName
 
   if (props.data.videos.length > 0) {
-    const origin = backendPreference.value === 'invidious'
-      ? currentInvidiousInstanceUrl.value
-      : 'https://i.ytimg.com'
-
-    thumbnail = `${origin}/vi/${props.data.videos[0].videoId}/mqdefault.jpg`
+    thumbnail = canonicalVideoThumbnail(props.data.videos[0].videoId, thumbnailPlaceholder)
   }
 
   channelName = ''

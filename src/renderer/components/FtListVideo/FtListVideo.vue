@@ -297,6 +297,7 @@ import {
   debounce
 } from '../../helpers/utils.js'
 import { deArrowData, deArrowThumbnail } from '../../helpers/sponsorblock.js'
+import { canonicalVideoThumbnail, selectNormalizedThumbnail } from '../../helpers/aegisReliability.js'
 import thumbnailPlaceholder from '../../assets/img/thumbnail_placeholder.svg'
 
 const props = defineProps({
@@ -680,23 +681,10 @@ const thumbnail = computed(() => {
     return deArrowCache.value.thumbnail
   }
 
-  let baseUrl
-  if (backendPreference.value === 'invidious') {
-    baseUrl = currentInvidiousInstanceUrl.value
-  } else {
-    baseUrl = 'https://i.ytimg.com'
-  }
-
-  switch (thumbnailPreference.value) {
-    case 'start':
-      return `${baseUrl}/vi/${id.value}/mq1.jpg`
-    case 'middle':
-      return `${baseUrl}/vi/${id.value}/mq2.jpg`
-    case 'end':
-      return `${baseUrl}/vi/${id.value}/mq3.jpg`
-    default:
-      return `${baseUrl}/vi/${id.value}/mqdefault.jpg`
-  }
+  const fetchedThumbnail = selectNormalizedThumbnail(props.data.videoThumbnails, thumbnailPlaceholder)
+  return fetchedThumbnail !== thumbnailPlaceholder
+    ? fetchedThumbnail
+    : canonicalVideoThumbnail(id.value, thumbnailPlaceholder)
 })
 
 /** @type {import('vue').ComputedRef<boolean>} */

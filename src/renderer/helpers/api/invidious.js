@@ -2,6 +2,7 @@ import store from '../../store/index'
 import { calculatePublishedDate, fetchWithTimeout, getRelativeTimeFromDate } from '../utils'
 import { isNullOrEmpty } from '../strings'
 import { fetchThroughAegisProxy } from '../aegisBridge'
+import { normalizeAegisThumbnailUrl } from '../aegisReliability'
 import autolinker from 'autolinker'
 import { FormatUtils, Misc, Player } from 'youtubei.js'
 
@@ -90,37 +91,61 @@ async function fetchInvidiousJson(requestUrl) {
 }
 
 async function invidiousAPICall(
-  { resource, id = '', params = {}, doLogError = true, subResource = '' },
-  retryAvailable = true
+  { resource, id = '', params = {}, doLogError = true, subResource = '' }
 ) {
-  const failedInstance = getCurrentInstanceUrl()
+  const attempted = new Set()
+  const capability = resource === 'videos' ? 'playback' : 'discovery'
   let requestUrl = ''
+  let lastError = null
 
-  try {
-    if (failedInstance === '') {
-      throw new Error('No public Invidious instance is available')
-    }
-
-    requestUrl = createInvidiousRequestUrl(failedInstance, { resource, id, params, subResource })
-    return await fetchInvidiousJson(requestUrl)
-  } catch (error) {
-    if (process.env.AEGISOS_WEB_EDITION && retryAvailable) {
-      await store.dispatch('fetchInvidiousInstances')
-      const replacement = await store.dispatch('setNextCurrentInvidiousInstance', failedInstance)
-
-      if (replacement !== '') {
-        return await invidiousAPICall(
-          { resource, id, params, doLogError, subResource },
-          false
-        )
+  while (true) {
+    const instance = getCurrentInstanceUrl()
+    if (instance === '' || attempted.has(instance)) break
+    attempted.add(instance)
+    requestUrl = createInvidiousRequestUrl(instance, { resource, id, params, subResource })
+    const startedAt = performance.now()
+    try {
+      const result = await fetchInvidiousJson(requestUrl)
+      const latencyMs = Math.round(performance.now() - startedAt)
+      await store.dispatch('recordInvidiousProviderCapability', {
+        origin: instance,
+        capability: resource === 'videos' ? 'videoDetailHealthy' : 'discoveryHealthy',
+        success: true,
+        latencyMs,
+      })
+      if (resource === 'videos') {
+        const hasFormats = Array.isArray(result.formatStreams) && result.formatStreams.length > 0 ||
+          Array.isArray(result.adaptiveFormats) && result.adaptiveFormats.length > 0 ||
+          typeof result.hlsUrl === 'string' && result.hlsUrl !== ''
+        await store.dispatch('recordInvidiousProviderCapability', {
+          origin: instance,
+          capability: 'formatsHealthy',
+          success: hasFormats,
+          latencyMs,
+          reason: hasFormats ? null : 'video detail contained no usable formats'
+        })
       }
+      return result
+    } catch (error) {
+      lastError = error
+      await store.dispatch('recordInvidiousProviderCapability', {
+        origin: instance,
+        capability: resource === 'videos' ? 'videoDetailHealthy' : 'discoveryHealthy',
+        success: false,
+        reason: error.message || String(error)
+      })
+      const replacement = await store.dispatch('setNextCurrentInvidiousInstance', {
+        failedInstance: instance,
+        capability
+      })
+      if (replacement === '') break
     }
-
-    if (doLogError) {
-      console.error('Invidious API error', requestUrl || failedInstance, error)
-    }
-    throw error
   }
+
+  if (doLogError) {
+    console.error('Invidious API error', requestUrl || getCurrentInstanceUrl(), lastError)
+  }
+  throw lastError ?? new Error('No public Invidious instance is eligible for this request')
 }
 
 async function resolveUrl(url) {
@@ -466,10 +491,13 @@ export async function invidiousGetPlaylistInfo(playlistId) {
  * }>}
  */
 export async function invidiousGetVideoInformation(videoId) {
-  return await invidiousAPICall({
+  const video = await invidiousAPICall({
     resource: 'videos',
     id: videoId,
   })
+  normalizeOneInvidiousVideoAttributes(video)
+  normalizeManyInvidiousVideosAttributes(video.recommendedVideos ?? [])
+  return video
 }
 
 /**
@@ -1023,34 +1051,11 @@ function normalizeOneInvidiousVideoAttributes(video, fallbackAuthorId = null) {
   if (Array.isArray(video.videoThumbnails)) {
     video.videoThumbnails = video.videoThumbnails.map((thumbnail) => ({
       ...thumbnail,
-      url: normalizeInvidiousThumbnailUrl(thumbnail.url)
+      url: normalizeAegisThumbnailUrl(thumbnail.url, getCurrentInstanceUrl())
     }))
   }
 }
 
-/**
- * Some public instances advertise internal or insecure thumbnail origins.
- * Video thumbnails are public YouTube assets, so use the canonical HTTPS host
- * instead of depending on an instance's intermittently broken image proxy.
- * @param {string} value
- * @returns {string}
- */
-function normalizeInvidiousThumbnailUrl(value) {
-  try {
-    const instance = new URL(getCurrentInstanceUrl())
-    const thumbnail = new URL(value, instance)
-    if (thumbnail.pathname.startsWith('/vi/')) {
-      thumbnail.protocol = 'https:'
-      thumbnail.host = 'i.ytimg.com'
-    } else if (thumbnail.pathname.startsWith('/ggpht/')) {
-      thumbnail.protocol = instance.protocol
-      thumbnail.host = instance.host
-    }
-    return thumbnail.toString()
-  } catch {
-    return value
-  }
-}
 
 /**
  * @param {{
