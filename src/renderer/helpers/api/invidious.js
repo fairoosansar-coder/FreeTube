@@ -1,7 +1,11 @@
 import store from '../../store/index'
 import { calculatePublishedDate, fetchWithTimeout, getRelativeTimeFromDate } from '../utils'
 import { isNullOrEmpty } from '../strings'
-import { fetchThroughAegisProxy, isAegisNativeBridgeExpected } from '../aegisBridge'
+import {
+  fetchManagedMetadataThroughAegisBridge,
+  fetchThroughAegisProxy,
+  isAegisNativeBridgeExpected,
+} from '../aegisBridge'
 import { canUseAegisManagedMetadata, createAegisManagedMetadataUrl } from '../aegisManagedMetadata'
 import {
   AegisCapabilityError,
@@ -78,7 +82,8 @@ function createInvidiousRequestUrl(instance, { resource, id, params, subResource
 
 async function fetchAegisManagedMetadata(request) {
   const requestUrl = createAegisManagedMetadataUrl(request)
-  const response = await fetchWithTimeout(12_000, requestUrl)
+  const response = await fetchManagedMetadataThroughAegisBridge(requestUrl) ??
+    await fetchWithTimeout(12_000, requestUrl)
   const contentType = response.headers.get('content-type') ?? ''
   if (!contentType.includes('application/json')) {
     throw new Error('AegisTube managed metadata service returned an invalid response type')

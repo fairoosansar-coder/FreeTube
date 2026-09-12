@@ -314,6 +314,43 @@ export async function fetchThroughAegisProxy(input) {
 }
 
 /**
+ * Ask the authenticated native AegisOS parent to fetch one fixed managed
+ * discovery operation. Rust independently validates operation, parameters,
+ * response bounds, JSON, and timeout before the child receives a response.
+ * @param {string | URL} input
+ * @returns {Promise<Response | null>}
+ */
+export async function fetchManagedMetadataThroughAegisBridge(input) {
+  const url = new URL(input)
+  if (url.origin !== 'https://os.aegisos.me' || !url.pathname.startsWith('/api/aegistube/v1/')) {
+    return null
+  }
+  if (!expectsNativeBridge) return null
+
+  const config = await getNativeProxyConfig()
+  if (config === null) {
+    throw new Error('AegisOS native metadata bridge did not answer. Reload AegisTube to reconnect it.')
+  }
+  const message = await sendToParent(
+    'managed-metadata-request',
+    'response',
+    { path: `${url.pathname}${url.search}` },
+    30_000
+  )
+  if (message.ok !== true || typeof message.body !== 'string') {
+    throw new Error(typeof message.error === 'string' ? message.error : 'AegisOS managed metadata service failed')
+  }
+  return new Response(message.body, {
+    status: Number.isInteger(message.status) ? message.status : 200,
+    headers: {
+      'content-type': typeof message.contentType === 'string'
+        ? message.contentType
+        : 'application/json'
+    }
+  })
+}
+
+/**
  * Route FreeTube's unauthenticated Innertube JSON POSTs through the installed
  * AegisOS shell. The native side independently enforces the exact YouTube
  * origin, path family, method, headers, and body/response limits.

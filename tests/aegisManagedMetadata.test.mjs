@@ -26,10 +26,10 @@ test('search and suggestions have bounded fixed endpoint shapes', () => {
   assert.equal(createAegisManagedMetadataUrl({ resource: 'search', params: { q: 'AegisOS', page: 2 } }).toString(), 'https://os.aegisos.me/api/aegistube/v1/search?q=AegisOS&page=2')
   assert.equal(createAegisManagedMetadataUrl({ resource: 'search/suggestions', params: { q: 'AegisTube' } }).toString(), 'https://os.aegisos.me/api/aegistube/v1/suggestions?q=AegisTube')
 })
-test('only browser discovery calls use the managed service', () => {
+test('managed discovery includes authenticated native bridge calls but excludes non-discovery operations', () => {
   assert.equal(canUseAegisManagedMetadata({ resource: 'popular', id: '', subResource: '', webEdition: true, nativeBridge: false }), true)
   assert.equal(canUseAegisManagedMetadata({ resource: 'videos', id: 'dQw4w9WgXcQ', subResource: '', webEdition: true, nativeBridge: false }), false)
-  assert.equal(canUseAegisManagedMetadata({ resource: 'popular', id: '', subResource: '', webEdition: true, nativeBridge: true }), false)
+  assert.equal(canUseAegisManagedMetadata({ resource: 'popular', id: '', subResource: '', webEdition: true, nativeBridge: true }), true)
   assert.equal(canUseAegisManagedMetadata({ resource: 'popular', id: '', subResource: '', webEdition: false, nativeBridge: false }), false)
 })
 test('unsupported resources cannot be converted into service paths', () => {
