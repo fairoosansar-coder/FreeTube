@@ -12,7 +12,7 @@ function isNullOrEmpty(value) {
 
 export function canUseAegisManagedMetadata({ resource, id, subResource, webEdition, nativeBridge }) {
   return webEdition &&
-    !nativeBridge &&
+    (nativeBridge === true || nativeBridge === false) &&
     id === '' &&
     isNullOrEmpty(subResource) &&
     AEGIS_MANAGED_METADATA_RESOURCES.has(resource)
