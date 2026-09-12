@@ -281,6 +281,7 @@ import {
   deepCopy,
 } from '../../helpers/utils'
 import thumbnailPlaceholder from '../../assets/img/thumbnail_placeholder.svg'
+import { canonicalVideoThumbnail, isApprovedAegisAssetUrl } from '../../helpers/aegisReliability'
 
 const props = defineProps({
   id: {
@@ -412,8 +413,6 @@ const durationFormatted = computed(() => {
 const hideSharingActions = computed(() => store.getters.getHideSharingActions)
 
 /** @type {import('vue').ComputedRef<string>} */
-const currentInvidiousInstanceUrl = computed(() => store.getters.getCurrentInvidiousInstanceUrl)
-
 /** @type {import('vue').ComputedRef<Record<string, object>>} */
 const historyCacheById = computed(() => store.getters.getHistoryCacheById)
 
@@ -424,8 +423,6 @@ const thumbnailPreference = computed(() => store.getters.getThumbnailPreference)
 const blurThumbnails = computed(() => store.getters.getBlurThumbnails)
 
 /** @type {import('vue').ComputedRef<'local' | 'invidious'>} */
-const backendPreference = computed(() => store.getters.getBackendPreference)
-
 /** @type {import('vue').ComputedRef<boolean>} */
 const hideViews = computed(() => store.getters.getHideVideoViews)
 
@@ -449,23 +446,20 @@ const thumbnail = computed(() => {
     return thumbnailPlaceholder
   }
 
-  let baseUrl = 'https://i.ytimg.com'
-  if (backendPreference.value === 'invidious') {
-    baseUrl = currentInvidiousInstanceUrl.value
-  } else if (typeof props.playlistThumbnail === 'string' && props.playlistThumbnail.length > 0) {
+  if (typeof props.playlistThumbnail === 'string' && isApprovedAegisAssetUrl(props.playlistThumbnail)) {
     // Use playlist thumbnail provided by YT when available
     return props.playlistThumbnail
   }
 
   switch (thumbnailPreference.value) {
     case 'start':
-      return `${baseUrl}/vi/${props.firstVideoId}/mq1.jpg`
+      return canonicalVideoThumbnail(props.firstVideoId, 'mq1', thumbnailPlaceholder)
     case 'middle':
-      return `${baseUrl}/vi/${props.firstVideoId}/mq2.jpg`
+      return canonicalVideoThumbnail(props.firstVideoId, 'mq2', thumbnailPlaceholder)
     case 'end':
-      return `${baseUrl}/vi/${props.firstVideoId}/mq3.jpg`
+      return canonicalVideoThumbnail(props.firstVideoId, 'mq3', thumbnailPlaceholder)
     default:
-      return `${baseUrl}/vi/${props.firstVideoId}/mqdefault.jpg`
+      return canonicalVideoThumbnail(props.firstVideoId, 'mqdefault', thumbnailPlaceholder)
   }
 })
 

@@ -94,6 +94,16 @@ or service and is not endorsed by the FreeTube project.
   reuses an older bridge client from the browser cache.
 - Rewrite Invidious video-thumbnail paths to YouTube's canonical HTTPS image
   host instead of an instance's internal or intermittently broken proxy.
+- Track provider discovery, video-detail, format, stream-probe, latency, and
+  cooldown state independently. A successful public feed is not playback-health
+  evidence, and deterministic provider selection skips an active cooldown.
+- Normalize provider-returned thumbnails once at data ingestion. Relative `/vi/`
+  paths and canonical YouTube thumbnail URLs use the approved HTTPS canonical
+  host; malformed, credential-bearing, loopback, private-address, non-HTTP(S),
+  and unsupported asset URLs resolve to the controlled card fallback.
+- When bridge-v3 native extraction is available, retain it as the installed
+  AegisOS video-detail and format path. Invidious remains discovery-only; raw
+  provider errors are reduced to classified diagnostic identifiers.
 
 The locally bundled AegisOS payload is the installed product. The optional
 hosted browser/phone build defaults to the Invidious backend and remains
