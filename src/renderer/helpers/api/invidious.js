@@ -1,7 +1,8 @@
 import store from '../../store/index'
 import { calculatePublishedDate, fetchWithTimeout, getRelativeTimeFromDate } from '../utils'
 import { isNullOrEmpty } from '../strings'
-import { fetchThroughAegisProxy } from '../aegisBridge'
+import { fetchThroughAegisProxy, isAegisNativeBridgeExpected } from '../aegisBridge'
+import { canUseAegisManagedMetadata, createAegisManagedMetadataUrl } from '../aegisManagedMetadata'
 import {
   AegisCapabilityError,
   hasConsumerUsableFormats,
@@ -75,6 +76,21 @@ function createInvidiousRequestUrl(instance, { resource, id, params, subResource
     '?' + new URLSearchParams(params).toString()
 }
 
+async function fetchAegisManagedMetadata(request) {
+  const requestUrl = createAegisManagedMetadataUrl(request)
+  const response = await fetchWithTimeout(12_000, requestUrl)
+  const contentType = response.headers.get('content-type') ?? ''
+  if (!contentType.includes('application/json')) {
+    throw new Error('AegisTube managed metadata service returned an invalid response type')
+  }
+  const body = await response.json()
+  if (!response.ok) {
+    const detail = typeof body?.code === 'string' ? body.code : `HTTP ${response.status}`
+    throw new Error(`AegisTube managed metadata service failed: ${detail}`)
+  }
+  return body
+}
+
 async function fetchInvidiousJson(requestUrl) {
   const response = await invidiousFetch(requestUrl)
   if (!response.ok) {
@@ -97,6 +113,21 @@ async function fetchInvidiousJson(requestUrl) {
 async function invidiousAPICall(
   { resource, id = '', params = {}, doLogError = true, subResource = '' }
 ) {
+  if (canUseAegisManagedMetadata({
+    resource,
+    id,
+    subResource,
+    webEdition: process.env.AEGISOS_WEB_EDITION,
+    nativeBridge: isAegisNativeBridgeExpected(),
+  })) {
+    try {
+      return await fetchAegisManagedMetadata({ resource, params })
+    } catch (error) {
+      if (doLogError) console.error('AegisTube managed metadata service error', error)
+      throw error
+    }
+  }
+
   const attempted = new Set()
   const capability = resource === 'videos' ? 'playback' : 'discovery'
   let requestUrl = ''
