@@ -3,6 +3,7 @@ import {
   AEGIS_MANAGED_METADATA_ORIGIN,
   canUseAegisManagedMetadata,
   createAegisManagedMetadataUrl,
+  selectAegisDiscoveryBackend,
 } from '../src/renderer/helpers/aegisManagedMetadata.js'
 
 let count = 0
@@ -31,6 +32,13 @@ test('managed discovery includes authenticated native bridge calls but excludes 
   assert.equal(canUseAegisManagedMetadata({ resource: 'videos', id: 'dQw4w9WgXcQ', subResource: '', webEdition: true, nativeBridge: false }), false)
   assert.equal(canUseAegisManagedMetadata({ resource: 'popular', id: '', subResource: '', webEdition: true, nativeBridge: true }), true)
   assert.equal(canUseAegisManagedMetadata({ resource: 'popular', id: '', subResource: '', webEdition: false, nativeBridge: false }), false)
+})
+test('native bridge-v3 keeps fixed discovery on managed Invidious rather than Local API', () => {
+  assert.equal(selectAegisDiscoveryBackend({ webEdition: true, nativeExtractor: true, savedPreference: 'local' }), 'invidious')
+})
+test('standalone and non-native modes preserve their saved discovery preference', () => {
+  assert.equal(selectAegisDiscoveryBackend({ webEdition: true, nativeExtractor: false, savedPreference: 'local' }), 'local')
+  assert.equal(selectAegisDiscoveryBackend({ webEdition: false, nativeExtractor: true, savedPreference: 'invidious' }), 'invidious')
 })
 test('unsupported resources cannot be converted into service paths', () => {
   assert.throws(() => createAegisManagedMetadataUrl({ resource: 'proxy', params: {} }), /Unsupported/)

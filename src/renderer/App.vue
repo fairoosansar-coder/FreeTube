@@ -145,6 +145,7 @@ import {
   isAegisNativeExtractorExpected,
   subscribeToAegisShellEvent,
 } from './helpers/aegisBridge'
+import { selectAegisDiscoveryBackend } from './helpers/aegisManagedMetadata'
 
 const route = useRoute()
 const router = useRouter()
@@ -218,9 +219,13 @@ onMounted(async () => {
     completedBootStages.value.push('Preferences loaded')
 
     if (process.env.AEGISOS_WEB_EDITION && isAegisNativeExtractorExpected()) {
-      // Native extraction is the reliable playback path. Override an older
-      // saved Invidious-only preference when the authenticated shell is present.
-      store.commit('setBackendPreference', 'local')
+      // Bridge-v3 remains the only native video-detail, format, and playback
+      // route. Fixed popular, search, and suggestions stay on managed metadata.
+      store.commit('setBackendPreference', selectAegisDiscoveryBackend({
+        webEdition: process.env.AEGISOS_WEB_EDITION,
+        nativeExtractor: isAegisNativeExtractorExpected(),
+        savedPreference: store.getters.getBackendPreference,
+      }))
       store.commit('setBackendFallback', true)
     }
 

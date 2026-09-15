@@ -108,6 +108,14 @@ export function canonicalVideoThumbnail(videoId, variant = 'mqdefault', fallback
     : fallback
 }
 
+/** Resolve a video-card image through only the approved asset boundary or a canonical ID-derived fallback. */
+export function resolveAegisVideoThumbnail(thumbnails, videoId, fallback = '') {
+  const selected = selectNormalizedThumbnail(thumbnails, fallback)
+  return selected !== fallback
+    ? selected
+    : canonicalVideoThumbnail(videoId, 'mqdefault', fallback)
+}
+
 function createCapability(status = 'unknown') {
   return {
     status,
