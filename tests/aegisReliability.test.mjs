@@ -60,6 +60,10 @@ test('final thumbnail selection rejects arbitrary non-empty record URLs', () => 
   assert.equal(selectNormalizedThumbnail([{ url: 'https://evil.example/x.jpg' }], fallback), fallback)
   assert.equal(selectNormalizedThumbnail([{ url: 'https://i.ytimg.com/vi/abcdefghijk/mqdefault.jpg' }], fallback), 'https://i.ytimg.com/vi/abcdefghijk/mqdefault.jpg')
 })
+test('final thumbnail selection canonicalizes a strict managed relative record without a provider', () => {
+  assert.equal(selectNormalizedThumbnail([{ url: '/vi/abcdefghijk/maxres.jpg' }], fallback), 'https://i.ytimg.com/vi/abcdefghijk/maxres.jpg')
+  assert.equal(selectNormalizedThumbnail([{ url: '/vi/abcdefghijk/evil.svg' }], fallback), fallback)
+})
 test('canonical start middle and end thumbnail preferences are safe', () => {
   assert.equal(canonicalVideoThumbnail('abcdefghijk', 'mq1', fallback), 'https://i.ytimg.com/vi/abcdefghijk/mq1.jpg')
   assert.equal(canonicalVideoThumbnail('abcdefghijk', 'mq2', fallback), 'https://i.ytimg.com/vi/abcdefghijk/mq2.jpg')
