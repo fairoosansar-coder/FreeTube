@@ -23,6 +23,17 @@ export function selectAegisDiscoveryBackend({ webEdition, nativeExtractor, saved
   return webEdition && nativeExtractor ? 'invidious' : savedPreference
 }
 
+/** Keep asynchronous managed autocomplete visible only while its exact input remains active. */
+export function shouldOpenAegisAsyncSuggestions({ isAegisTube, isSearchInput, inputFocused, query, resultCount }) {
+  return isAegisTube === true &&
+    isSearchInput === true &&
+    inputFocused === true &&
+    typeof query === 'string' &&
+    query.trim().length > 0 &&
+    Number.isInteger(resultCount) &&
+    resultCount > 0
+}
+
 export function createAegisManagedMetadataUrl({ resource, params }) {
   const operation = AEGIS_MANAGED_METADATA_RESOURCES.get(resource)
   if (!operation) throw new Error(`Unsupported AegisTube managed metadata resource: ${resource}`)
