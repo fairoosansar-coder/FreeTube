@@ -297,7 +297,7 @@ import {
   debounce
 } from '../../helpers/utils.js'
 import { deArrowData, deArrowThumbnail } from '../../helpers/sponsorblock.js'
-import { canonicalVideoThumbnail, selectNormalizedThumbnail } from '../../helpers/aegisReliability.js'
+import { resolveAegisVideoThumbnail } from '../../helpers/aegisReliability.js'
 import thumbnailPlaceholder from '../../assets/img/thumbnail_placeholder.svg'
 
 const props = defineProps({
@@ -681,10 +681,7 @@ const thumbnail = computed(() => {
     return deArrowCache.value.thumbnail
   }
 
-  const fetchedThumbnail = selectNormalizedThumbnail(props.data.videoThumbnails, thumbnailPlaceholder)
-  return fetchedThumbnail !== thumbnailPlaceholder
-    ? fetchedThumbnail
-    : canonicalVideoThumbnail(id.value, thumbnailPlaceholder)
+  return resolveAegisVideoThumbnail(props.data.videoThumbnails, id.value, thumbnailPlaceholder)
 })
 
 /** @type {import('vue').ComputedRef<boolean>} */

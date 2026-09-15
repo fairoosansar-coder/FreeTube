@@ -18,6 +18,11 @@ export function canUseAegisManagedMetadata({ resource, id, subResource, webEditi
     AEGIS_MANAGED_METADATA_RESOURCES.has(resource)
 }
 
+/** Keep native playback local while routing fixed discovery operations through the managed edge. */
+export function selectAegisDiscoveryBackend({ webEdition, nativeExtractor, savedPreference }) {
+  return webEdition && nativeExtractor ? 'invidious' : savedPreference
+}
+
 export function createAegisManagedMetadataUrl({ resource, params }) {
   const operation = AEGIS_MANAGED_METADATA_RESOURCES.get(resource)
   if (!operation) throw new Error(`Unsupported AegisTube managed metadata resource: ${resource}`)

@@ -9,6 +9,7 @@ import {
   nextProviderCapabilityState,
   normalizeAegisThumbnailUrl,
   providerEligible,
+  resolveAegisVideoThumbnail,
   selectDeterministicProvider,
   selectNormalizedThumbnail,
   selectVideoDetailRoute,
@@ -52,6 +53,24 @@ test('canonical start middle and end thumbnail preferences are safe', () => {
   assert.equal(canonicalVideoThumbnail('abcdefghijk', 'mq1', fallback), 'https://i.ytimg.com/vi/abcdefghijk/mq1.jpg')
   assert.equal(canonicalVideoThumbnail('abcdefghijk', 'mq2', fallback), 'https://i.ytimg.com/vi/abcdefghijk/mq2.jpg')
   assert.equal(canonicalVideoThumbnail('abcdefghijk', 'mq3', fallback), 'https://i.ytimg.com/vi/abcdefghijk/mq3.jpg')
+})
+test('video-card thumbnail resolver retains an approved source thumbnail', () => {
+  assert.equal(
+    resolveAegisVideoThumbnail([{ url: 'https://i.ytimg.com/vi/abcdefghijk/mqdefault.jpg' }], 'abcdefghijk', fallback),
+    'https://i.ytimg.com/vi/abcdefghijk/mqdefault.jpg'
+  )
+})
+test('video-card thumbnail resolver derives a safe canonical fallback when source data is missing', () => {
+  assert.equal(
+    resolveAegisVideoThumbnail([], 'abcdefghijk', fallback),
+    'https://i.ytimg.com/vi/abcdefghijk/mqdefault.jpg'
+  )
+})
+test('video-card thumbnail resolver rejects unsafe source data before deriving the fallback', () => {
+  assert.equal(
+    resolveAegisVideoThumbnail([{ url: 'https://evil.example/thumbnail.jpg' }], 'abcdefghijk', fallback),
+    'https://i.ytimg.com/vi/abcdefghijk/mqdefault.jpg'
+  )
 })
 
 const noFormats = { formatStreams: [], adaptiveFormats: [], hlsUrl: '' }
