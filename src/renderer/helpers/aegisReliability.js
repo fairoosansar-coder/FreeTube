@@ -103,10 +103,11 @@ export function normalizeAegisThumbnailUrl(value, providerOrigin, fallback = '',
 /** Final renderer boundary: never return an arbitrary non-empty record field. */
 export function selectNormalizedThumbnail(thumbnails, fallback = '', providerOrigin = '', approvedOrigins = []) {
   if (!Array.isArray(thumbnails)) return fallback
-  const selected = thumbnails.find(thumbnail => {
-    return thumbnail && isApprovedAegisAssetUrl(thumbnail.url, providerOrigin, approvedOrigins)
-  })
-  return selected?.url ?? fallback
+  for (const thumbnail of thumbnails) {
+    const normalized = normalizeAegisThumbnailUrl(thumbnail?.url, providerOrigin, '', approvedOrigins)
+    if (normalized !== '') return normalized
+  }
+  return fallback
 }
 
 export function canonicalVideoThumbnail(videoId, variant = 'mqdefault', fallback = '') {
