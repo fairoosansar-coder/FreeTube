@@ -34,6 +34,17 @@ function test(name, fn) {
 test('relative provider vi path becomes canonical HTTPS thumbnail', () => {
   assert.equal(normalizeAegisThumbnailUrl('/vi/abcdefghijk/mqdefault.jpg', provider, fallback), 'https://i.ytimg.com/vi/abcdefghijk/mqdefault.jpg')
 })
+test('managed relative vi path becomes canonical HTTPS thumbnail without a provider', () => {
+  assert.equal(normalizeAegisThumbnailUrl('/vi/abcdefghijk/maxres.jpg', '', fallback), 'https://i.ytimg.com/vi/abcdefghijk/maxres.jpg')
+})
+for (const value of [
+  '/vi/short/mqdefault.jpg',
+  '/vi/abcdefghijk/../../secret.jpg',
+  '/vi/abcdefghijk/evil.svg',
+  '//evil.example/vi/abcdefghijk/mqdefault.jpg',
+]) {
+  test(`unsafe managed relative thumbnail ${value} is rejected`, () => assert.equal(normalizeAegisThumbnailUrl(value, '', fallback), fallback))
+}
 test('canonical i.ytimg stays valid with empty provider origin', () => {
   assert.equal(normalizeAegisThumbnailUrl('https://i.ytimg.com/vi/abcdefghijk/mqdefault.jpg', '', fallback), 'https://i.ytimg.com/vi/abcdefghijk/mqdefault.jpg')
 })

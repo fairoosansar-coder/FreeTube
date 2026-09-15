@@ -67,6 +67,12 @@ function isCanonicalThumbnail(url) {
   return url.protocol === 'https:' && CANONICAL_THUMBNAIL_HOSTS.has(url.hostname) && url.pathname.startsWith('/vi/')
 }
 
+function canonicalThumbnailFromRelativePath(value) {
+  if (typeof value !== 'string') return null
+  const match = value.match(/^\/vi\/([A-Za-z0-9_-]{11})\/(?:default|mqdefault|mq[1-3]|hqdefault|sddefault|maxres(?:default|[1-3])?|[1-3])\.(?:jpe?g|webp)$/)
+  return match === null ? null : `https://i.ytimg.com${value}`
+}
+
 export function isApprovedAegisAssetUrl(value, providerOrigin = '', approvedOrigins = []) {
   if (typeof value !== 'string' || value.trim() === '') return false
   let url
@@ -80,6 +86,8 @@ export function isApprovedAegisAssetUrl(value, providerOrigin = '', approvedOrig
 /** Normalize only validated provider assets to immutable canonical or approved HTTPS URLs. */
 export function normalizeAegisThumbnailUrl(value, providerOrigin, fallback = '', approvedOrigins = []) {
   if (typeof value !== 'string' || value.trim() === '') return fallback
+  const managedRelativeThumbnail = canonicalThumbnailFromRelativePath(value)
+  if (managedRelativeThumbnail !== null) return managedRelativeThumbnail
   const provider = parseApprovedProviderOrigin(providerOrigin, approvedOrigins)
   let url
   try { url = new URL(value, provider ?? undefined) } catch { return fallback }

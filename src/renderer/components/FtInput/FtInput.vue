@@ -126,6 +126,7 @@ import FtTooltip from '../FtTooltip/FtTooltip.vue'
 import store from '../../store/index'
 
 import { isKeyboardEventKeyPrintableChar, isNullOrEmpty } from '../../helpers/strings'
+import { shouldOpenAegisAsyncSuggestions } from '../../helpers/aegisManagedMetadata'
 
 const { t } = useI18n()
 
@@ -492,6 +493,16 @@ function updateVisibleDataList() {
   visibleDataList.value = props.dataList.filter(x => {
     return x.toLowerCase().includes(lowerCaseInputData)
   })
+
+  if (shouldOpenAegisAsyncSuggestions({
+    isAegisTube: process.env.AEGISTUBE_EDITION === true,
+    isSearchInput: props.isSearch,
+    inputFocused: document.activeElement === inputRef.value,
+    query: inputData.value,
+    resultCount: visibleDataList.value.length,
+  })) {
+    searchState.showOptions = true
+  }
 }
 
 defineExpose({

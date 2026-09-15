@@ -4,6 +4,7 @@ import {
   canUseAegisManagedMetadata,
   createAegisManagedMetadataUrl,
   selectAegisDiscoveryBackend,
+  shouldOpenAegisAsyncSuggestions,
 } from '../src/renderer/helpers/aegisManagedMetadata.js'
 
 let count = 0
@@ -39,6 +40,14 @@ test('native bridge-v3 keeps fixed discovery on managed Invidious rather than Lo
 test('standalone and non-native modes preserve their saved discovery preference', () => {
   assert.equal(selectAegisDiscoveryBackend({ webEdition: true, nativeExtractor: false, savedPreference: 'local' }), 'local')
   assert.equal(selectAegisDiscoveryBackend({ webEdition: false, nativeExtractor: true, savedPreference: 'invidious' }), 'invidious')
+})
+test('focused AegisTube search opens when asynchronous managed suggestions arrive', () => {
+  assert.equal(shouldOpenAegisAsyncSuggestions({ isAegisTube: true, isSearchInput: true, inputFocused: true, query: 'ambient', resultCount: 4 }), true)
+})
+test('asynchronous suggestions do not reopen after blur, for an empty query, or without results', () => {
+  assert.equal(shouldOpenAegisAsyncSuggestions({ isAegisTube: true, isSearchInput: true, inputFocused: false, query: 'ambient', resultCount: 4 }), false)
+  assert.equal(shouldOpenAegisAsyncSuggestions({ isAegisTube: true, isSearchInput: true, inputFocused: true, query: ' ', resultCount: 4 }), false)
+  assert.equal(shouldOpenAegisAsyncSuggestions({ isAegisTube: true, isSearchInput: true, inputFocused: true, query: 'ambient', resultCount: 0 }), false)
 })
 test('unsupported resources cannot be converted into service paths', () => {
   assert.throws(() => createAegisManagedMetadataUrl({ resource: 'proxy', params: {} }), /Unsupported/)
