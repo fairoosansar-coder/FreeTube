@@ -103,11 +103,19 @@ export function normalizeAegisThumbnailUrl(value, providerOrigin, fallback = '',
 /** Final renderer boundary: never return an arbitrary non-empty record field. */
 export function selectNormalizedThumbnail(thumbnails, fallback = '', providerOrigin = '', approvedOrigins = []) {
   if (!Array.isArray(thumbnails)) return fallback
+  const reliableVariants = ['maxresdefault', 'sddefault', 'hqdefault', 'mqdefault', 'default']
+  let selected = ''
+  let selectedRank = reliableVariants.length
   for (const thumbnail of thumbnails) {
     const normalized = normalizeAegisThumbnailUrl(thumbnail?.url, providerOrigin, '', approvedOrigins)
-    if (normalized !== '') return normalized
+    const match = normalized.match(/^https:\/\/i\.ytimg\.com\/vi\/[A-Za-z0-9_-]{11}\/([^/?]+)\.(?:jpe?g|webp)$/)
+    const rank = reliableVariants.indexOf(match?.[1])
+    if (rank !== -1 && rank < selectedRank) {
+      selected = normalized
+      selectedRank = rank
+    }
   }
-  return fallback
+  return selected || fallback
 }
 
 export function canonicalVideoThumbnail(videoId, variant = 'mqdefault', fallback = '') {
