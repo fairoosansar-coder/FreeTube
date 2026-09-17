@@ -13,9 +13,9 @@ import {
   readAegisWebLibrary,
   recordAegisWebHistory,
   renameAegisWebFolder,
+  requestAegisWebLibraryExport,
   toggleAegisWebFavorite,
   toggleAegisWebFolderMembership,
-  triggerAegisWebLibraryDownload,
   updateAegisWebPlayerPreferences,
 } from '../src/renderer/helpers/aegisWebLibrary.js'
 import {
@@ -158,34 +158,22 @@ test('exports are user-portable but include only bounded validated browser-local
   assert.equal(createAegisWebLibraryExport('zip', storage), null)
 })
 
-test('browser-local export leaves the object URL available through its synthetic user action before revocation', () => {
-  const events = []
-  const link = {
-    style: {},
-    click: () => events.push('click'),
-    remove: () => events.push('remove'),
+test('browser-local export requests only a fixed same-origin parent handoff, never a child-frame download', () => {
+  const messages = []
+  const windowRef = {
+    location: { origin: 'https://os.aegisos.me' },
+    parent: { postMessage: (message, targetOrigin) => messages.push({ message, targetOrigin }) },
   }
-  const urlApi = {
-    createObjectURL: (blob) => { events.push(['create', blob.type]); return 'blob:local-backup' },
-    revokeObjectURL: (href) => events.push(['revoke', href]),
-  }
-  const documentRef = {
-    body: { appendChild: (element) => { assert.equal(element, link); events.push('append') } },
-    createElement: (tag) => { assert.equal(tag, 'a'); return link },
-  }
-  let scheduled
-  const downloaded = triggerAegisWebLibraryDownload('json', {
-    documentRef,
-    urlApi,
-    BlobCtor: class { constructor(_parts, options) { this.type = options.type } },
-    schedule: (fn, delay) => { scheduled = { fn, delay }; events.push(['schedule', delay]) },
-  })
-  assert.equal(downloaded, true)
-  assert.equal(link.href, 'blob:local-backup')
-  assert.match(link.download, /^aegistube-library-\d{4}-\d{2}-\d{2}\.json$/)
-  assert.deepEqual(events, [['create', 'application/json;charset=utf-8'], 'append', 'click', 'remove', ['schedule', 1000]])
-  scheduled.fn()
-  assert.deepEqual(events.at(-1), ['revoke', 'blob:local-backup'])
+  assert.equal(requestAegisWebLibraryExport('json', { windowRef, storage, now: Date.UTC(2026, 8, 17) }), true)
+  assert.equal(messages.length, 1)
+  assert.equal(messages[0].targetOrigin, 'https://os.aegisos.me')
+  assert.equal(messages[0].message.channel, 'aegisos:freetube:v1')
+  assert.equal(messages[0].message.type, 'browser-local-export')
+  assert.match(messages[0].message.filename, /^aegistube-library-2026-09-17\.json$/)
+  assert.equal(messages[0].message.mimeType, 'application/json;charset=utf-8')
+  assert.equal(JSON.parse(messages[0].message.content).schema, 'aegistube-browser-library-backup')
+  assert.equal(requestAegisWebLibraryExport('zip', { windowRef, storage }), false)
+  assert.equal(requestAegisWebLibraryExport('json', { windowRef: { location: { origin: 'https://evil.example' }, parent: null }, storage }), false)
 })
 
 test('mini-player resume URLs remain constrained to a validated video ID, approved origin and bounded user handoff', () => {
