@@ -87,6 +87,17 @@
           @click="toggleQuickBookmarked"
         />
         <FtIconButton
+          v-if="isAegisWebEdition"
+          :title="aegisWebFavorite ? 'Remove from favorites' : 'Save to favorites'"
+          :icon="['fas', 'heart']"
+          class="aegisWebFavoriteIcon"
+          :class="{ bookmarked: aegisWebFavorite, alwaysVisible: alwaysShowAddToPlaylistButton }"
+          :theme="aegisWebFavorite ? 'base favorite' : 'base'"
+          :padding="playlistIconPadding"
+          :size="playlistIconSize"
+          @click="toggleAegisWebFavorite"
+        />
+        <FtIconButton
           v-if="inUserPlaylist && canMoveVideoUp"
           :title="t('User Playlists.Move Video Up')"
           :icon="effectiveListTypeIsList ? ['fas', 'arrow-up'] : ['fas', 'arrow-left']"
@@ -298,6 +309,11 @@ import {
 } from '../../helpers/utils.js'
 import { deArrowData, deArrowThumbnail } from '../../helpers/sponsorblock.js'
 import { resolveAegisVideoThumbnail } from '../../helpers/aegisReliability.js'
+import {
+  isAegisWebFavorite,
+  recordAegisWebHistory,
+  toggleAegisWebFavorite as toggleAegisWebFavoriteEntry,
+} from '../../helpers/aegisWebLibrary.js'
 import thumbnailPlaceholder from '../../assets/img/thumbnail_placeholder.svg'
 
 const props = defineProps({
@@ -379,6 +395,7 @@ const emit = defineEmits(['move-video-down', 'move-video-up', 'pause-player', 'r
 
 const { locale, t } = useI18n()
 const isAegisTube = process.env.AEGISTUBE_EDITION === true
+const isAegisWebEdition = process.env.AEGISOS_WEB_EDITION === true
 const route = useRoute()
 
 const id = ref('')
@@ -767,6 +784,14 @@ const quickBookmarkPlaylist = computed(() => store.getters.getQuickBookmarkPlayl
 
 const isQuickBookmarkEnabled = computed(() => quickBookmarkPlaylist.value != null)
 
+const aegisWebLibraryEntry = computed(() => ({
+  videoId: id.value,
+  title: title.value,
+  author: channelName.value ?? '',
+}))
+
+const aegisWebFavorite = ref(false)
+
 /** @type {import('vue').ComputedRef<boolean>} */
 const isInQuickBookmarkPlaylist = computed(() => {
   if (!isQuickBookmarkEnabled.value) { return false }
@@ -853,9 +878,18 @@ const deArrowCache = computed(() => store.getters.getDeArrowCache[id.value])
 const disableChannelLinks = computed(() => store.getters.getDisableChannelLinks)
 
 function handleWatchPageLinkClick() {
+  if (isAegisWebEdition) {
+    recordAegisWebHistory(aegisWebLibraryEntry.value)
+  }
   if (externalPlayerIsDefaultViewingMode.value) {
     handleExternalPlayer()
   }
+}
+
+function toggleAegisWebFavorite() {
+  const result = toggleAegisWebFavoriteEntry(aegisWebLibraryEntry.value)
+  aegisWebFavorite.value = result.isFavorite
+  showToast(result.isFavorite ? 'Video saved to favorites' : 'Video removed from favorites')
 }
 
 async function fetchDeArrowThumbnail() {
@@ -1149,6 +1183,10 @@ function onDragStart(event) {
 }
 
 parseVideoData()
+
+if (isAegisWebEdition) {
+  aegisWebFavorite.value = isAegisWebFavorite(id.value)
+}
 
 showDeArrowTitle.value = useDeArrowTitles.value
 showDeArrowThumbnail.value = useDeArrowThumbnails.value

@@ -48,6 +48,19 @@ import {
   createAegisWebPlaybackUrl,
   isAegisWebPlaybackMode,
 } from '../../helpers/aegisWebPlayback'
+import {
+  clampAegisWebPlayerVolume,
+  createAegisWebPlayerCommand,
+  resolveAegisWebPlayerShortcut,
+  AEGIS_WEB_PLAYER_MESSAGE_ORIGIN,
+} from '../../helpers/aegisWebPlayerControls'
+import {
+  isAegisWebFavorite,
+  recordAegisWebHistory,
+  toggleAegisWebFavorite,
+  readAegisWebLibrary,
+  updateAegisWebPlayerPreferences,
+} from '../../helpers/aegisWebLibrary'
 import { sortCaptions } from '../../helpers/player/utils'
 import { MANIFEST_TYPE_SABR } from '../../helpers/player/SabrManifestParser'
 import { useI18n } from 'vue-i18n'
@@ -89,6 +102,7 @@ export default defineComponent({
   },
   beforeRouteLeave: async function (to, from, next) {
     this.handleRouteChange()
+    this.stopAegisWebPlayerControls()
     window.removeEventListener('beforeunload', this.handleWatchProgressAutoSave)
     document.removeEventListener('keydown', this.resetAutoplayInterruptionTimeout)
     document.removeEventListener('click', this.resetAutoplayInterruptionTimeout)
@@ -186,6 +200,12 @@ export default defineComponent({
       /** @type {Date|null} */
       streamingDataExpiryDate: null,
       currentPlaybackRate: null,
+      aegisWebTheatreMode: false,
+      aegisWebDarkMode: false,
+      aegisWebVolume: 70,
+      aegisWebMuted: false,
+      aegisWebAssumedPlaying: false,
+      aegisWebFavorite: false,
     }
   },
   computed: {
@@ -504,7 +524,92 @@ export default defineComponent({
       this.thumbnail = canonicalVideoThumbnail(this.videoId)
       this.isLoading = false
       this.videoPlayerLoaded = true
+      const preferences = readAegisWebLibrary().preferences
+      this.aegisWebTheatreMode = preferences.theatreMode
+      this.aegisWebDarkMode = preferences.darkMode
+      this.aegisWebVolume = preferences.volume
+      this.aegisWebMuted = preferences.muted
+      this.aegisWebFavorite = isAegisWebFavorite(this.videoId)
+      recordAegisWebHistory({ videoId: this.videoId, title: this.videoTitle, author: this.channelName })
+      this.$nextTick(() => {
+        this.startAegisWebPlayerControls()
+        this.postAegisWebPlayerCommand('setVolume', [this.aegisWebVolume])
+        if (this.aegisWebMuted) this.postAegisWebPlayerCommand('mute')
+      })
       this.updateTitle()
+    },
+
+    startAegisWebPlayerControls: function () {
+      this.stopAegisWebPlayerControls()
+      document.addEventListener('keydown', this.handleAegisWebPlayerShortcut)
+    },
+
+    stopAegisWebPlayerControls: function () {
+      document.removeEventListener('keydown', this.handleAegisWebPlayerShortcut)
+    },
+
+    postAegisWebPlayerCommand: function (func, args = []) {
+      const command = createAegisWebPlayerCommand(func, args)
+      const frame = this.$refs.aegisWebPlayer
+      if (command === null || !frame?.contentWindow) return false
+      frame.contentWindow.postMessage(command, AEGIS_WEB_PLAYER_MESSAGE_ORIGIN)
+      return true
+    },
+
+    handleAegisWebPlayerShortcut: function (event) {
+      if (!this.isAegisWebPlayback) return
+      const action = resolveAegisWebPlayerShortcut(event)
+      if (action === null) return
+      event.preventDefault()
+      if (action === 'toggle-playback') this.toggleAegisWebPlayback()
+      else if (action === 'toggle-mute') this.toggleAegisWebMute()
+      else if (action === 'volume-up') this.changeAegisWebVolume(5)
+      else if (action === 'volume-down') this.changeAegisWebVolume(-5)
+      else if (action === 'fullscreen') this.toggleAegisWebFullscreen()
+      else if (action === 'theatre') this.toggleAegisWebTheatre()
+      else if (action === 'dark-mode') this.toggleAegisWebDarkMode()
+    },
+
+    toggleAegisWebPlayback: function () {
+      this.aegisWebAssumedPlaying = !this.aegisWebAssumedPlaying
+      this.postAegisWebPlayerCommand(this.aegisWebAssumedPlaying ? 'playVideo' : 'pauseVideo')
+    },
+
+    toggleAegisWebMute: function () {
+      this.aegisWebMuted = !this.aegisWebMuted
+      this.postAegisWebPlayerCommand(this.aegisWebMuted ? 'mute' : 'unMute')
+      updateAegisWebPlayerPreferences({ muted: this.aegisWebMuted })
+    },
+
+    changeAegisWebVolume: function (delta) {
+      this.aegisWebVolume = clampAegisWebPlayerVolume(this.aegisWebVolume + delta)
+      this.aegisWebMuted = this.aegisWebVolume === 0
+      this.postAegisWebPlayerCommand('setVolume', [this.aegisWebVolume])
+      if (this.aegisWebMuted) this.postAegisWebPlayerCommand('mute')
+      else this.postAegisWebPlayerCommand('unMute')
+      updateAegisWebPlayerPreferences({ volume: this.aegisWebVolume, muted: this.aegisWebMuted })
+    },
+
+    toggleAegisWebTheatre: function () {
+      this.aegisWebTheatreMode = !this.aegisWebTheatreMode
+      updateAegisWebPlayerPreferences({ theatreMode: this.aegisWebTheatreMode })
+    },
+
+    toggleAegisWebDarkMode: function () {
+      this.aegisWebDarkMode = !this.aegisWebDarkMode
+      updateAegisWebPlayerPreferences({ darkMode: this.aegisWebDarkMode })
+    },
+
+    toggleAegisWebFullscreen: function () {
+      const shell = this.$refs.aegisWebPlayerShell
+      if (!shell) return
+      if (document.fullscreenElement === shell) document.exitFullscreen?.()
+      else shell.requestFullscreen?.().catch(() => {})
+    },
+
+    toggleAegisWebFavorite: function () {
+      const result = toggleAegisWebFavorite({ videoId: this.videoId, title: this.videoTitle, author: this.channelName })
+      this.aegisWebFavorite = result.isFavorite
     },
 
     setViewingModeOnFirstLoad: function () {
