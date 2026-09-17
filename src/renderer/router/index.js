@@ -14,6 +14,7 @@ import Channel from '../views/Channel/Channel.vue'
 import Watch from '../views/Watch/Watch.vue'
 import Hashtag from '../views/Hashtag/Hashtag.vue'
 import Post from '../views/Post.vue'
+import AegisWebLibrary from '../views/AegisWebLibrary/AegisWebLibrary.vue'
 import { emitAegisShellEvent, subscribeToAegisShellEvent } from '../helpers/aegisBridge'
 
 const router = createRouter({
@@ -77,6 +78,14 @@ const router = createRouter({
       },
       component: History
     },
+    ...(process.env.AEGISOS_WEB_EDITION
+      ? [{
+          path: '/library/:collection(favorites|history)',
+          name: 'aegisWebLibrary',
+          meta: { title: 'Your library' },
+          component: AegisWebLibrary,
+        }]
+      : []),
     {
       path: '/settings',
       name: 'settings',

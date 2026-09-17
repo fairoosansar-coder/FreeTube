@@ -243,6 +243,74 @@
   display: block;
 }
 
+:global([data-aegis-accent] .aegisWebPlayerShell) {
+  background: linear-gradient(135deg, #111923, #080b11 58%, #15100a);
+  border: 1px solid var(--aegis-hairline);
+  border-radius: 12px;
+  box-shadow: 0 24px 56px rgb(0 0 0 / 34%);
+  margin-inline: auto;
+  max-inline-size: 880px;
+  overflow: hidden;
+}
+
+:global([data-aegis-accent] .aegisWebControlBar) {
+  align-items: center;
+  display: flex;
+  gap: 7px;
+  padding: 9px;
+}
+
+:global([data-aegis-accent] .aegisWebControlBar button) {
+  background: rgb(255 255 255 / 6%);
+  border: 1px solid rgb(255 255 255 / 12%);
+  border-radius: 7px;
+  color: #edf3ff;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  padding: 6px 9px;
+}
+
+:global([data-aegis-accent] .aegisWebControlBar button[aria-pressed='true']) {
+  background: rgb(232 179 60 / 18%);
+  border-color: rgb(232 179 60 / 70%);
+  color: #f6d579;
+}
+
+:global([data-aegis-accent] .aegisWebControlSpacer) { flex: 1; }
+
+:global([data-aegis-accent] .aegisWebTheatreMode) {
+  background: #05070b;
+  margin-inline: calc(50% - 50vw);
+  max-inline-size: none;
+  padding-inline: max(18px, calc(50vw - 760px));
+}
+
+:global([data-aegis-accent] .aegisWebTheatreMode .aegisWebPlayerShell),
+:global([data-aegis-accent] .aegisWebTheatreMode .videoPlayer) { max-inline-size: 1180px; }
+
+:global([data-aegis-accent] .aegisWebDarkMode) { background: radial-gradient(circle at 50% 0%, #182840 0%, #080b11 46%, #030508 100%); }
+
+:global([data-aegis-accent] .aegisWebPlayerShell:fullscreen) {
+  background: #000;
+  block-size: 100%;
+  display: flex;
+  flex-direction: column;
+  inline-size: 100%;
+  max-inline-size: none;
+}
+
+:global([data-aegis-accent] .aegisWebPlayerShell:fullscreen .aegisWebEmbedPlayer) {
+  flex: 1;
+  inline-size: 100%;
+  max-inline-size: none;
+}
+
+@media only screen and (width <= 680px) {
+  :global([data-aegis-accent] .aegisWebControlBar) { flex-wrap: wrap; }
+  :global([data-aegis-accent] .aegisWebControlSpacer) { display: none; }
+}
+
 :global([data-aegis-accent] .errorWrapper) {
   backdrop-filter: blur(20px);
   background: rgb(7 9 14 / 86%);

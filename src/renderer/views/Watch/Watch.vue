@@ -4,7 +4,9 @@
     :class="{
       isLoading,
       useTheatreMode: useTheatreMode && !isLoading,
-      noSidebar: !theatrePossible || isAegisWebPlayback
+      noSidebar: !theatrePossible || isAegisWebPlayback,
+      aegisWebTheatreMode: isAegisWebPlayback && aegisWebTheatreMode,
+      aegisWebDarkMode: isAegisWebPlayback && aegisWebDarkMode,
     }"
   >
     <ft-loader
@@ -16,16 +18,30 @@
       class="videoArea"
     >
       <div class="videoAreaMargin">
-        <iframe
-          v-if="!isLoading && isAegisWebPlayback"
-          class="videoPlayer aegisWebEmbedPlayer"
-          :src="aegisWebPlaybackUrl"
-          :title="videoTitle || 'AegisTube web player'"
-          allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-          allowfullscreen
-          loading="lazy"
-          referrerpolicy="strict-origin-when-cross-origin"
-        ></iframe>
+        <div v-if="!isLoading && isAegisWebPlayback" ref="aegisWebPlayerShell" class="aegisWebPlayerShell">
+          <div class="aegisWebControlBar" role="toolbar" aria-label="AegisTube player controls">
+            <button type="button" :title="aegisWebAssumedPlaying ? 'Pause (K or Space)' : 'Play (K or Space)'" @click="toggleAegisWebPlayback">{{ aegisWebAssumedPlaying ? 'Pause' : 'Play' }}</button>
+            <button type="button" :title="aegisWebMuted ? 'Unmute (M)' : 'Mute (M)'" @click="toggleAegisWebMute">{{ aegisWebMuted ? 'Unmute' : 'Mute' }}</button>
+            <button type="button" title="Decrease volume (Arrow Down)" @click="changeAegisWebVolume(-5)">−</button>
+            <span aria-live="polite">{{ aegisWebVolume }}%</span>
+            <button type="button" title="Increase volume (Arrow Up)" @click="changeAegisWebVolume(5)">+</button>
+            <button type="button" :aria-pressed="aegisWebFavorite" :title="aegisWebFavorite ? 'Remove from favorites' : 'Save to favorites'" @click="toggleAegisWebFavorite">Favorite</button>
+            <span class="aegisWebControlSpacer" />
+            <button type="button" :aria-pressed="aegisWebTheatreMode" title="Toggle theater mode (T)" @click="toggleAegisWebTheatre">Theater</button>
+            <button type="button" :aria-pressed="aegisWebDarkMode" title="Toggle dark mode (D)" @click="toggleAegisWebDarkMode">Dark</button>
+            <button type="button" title="Fullscreen (F)" @click="toggleAegisWebFullscreen">Fullscreen</button>
+          </div>
+          <iframe
+            ref="aegisWebPlayer"
+            class="videoPlayer aegisWebEmbedPlayer"
+            :src="aegisWebPlaybackUrl"
+            :title="videoTitle || 'AegisTube web player'"
+            allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            allowfullscreen
+            loading="lazy"
+            referrerpolicy="strict-origin-when-cross-origin"
+          ></iframe>
+        </div>
         <ft-shaka-video-player
           v-else-if="!isLoading && (!isUpcoming || playabilityStatus === 'OK') && !errorMessage"
           ref="player"

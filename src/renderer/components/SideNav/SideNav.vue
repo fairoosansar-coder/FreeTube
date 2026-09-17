@@ -52,9 +52,21 @@
           <span class="navLabel">{{ $t('Playlists') }}</span>
         </router-link>
         <router-link
+          v-if="isAegisWebEdition"
           class="navOption"
           role="button"
-          to="/history"
+          to="/library/favorites"
+          title="Favorites"
+        >
+          <span class="thumbnailContainer">
+            <FontAwesomeIcon :icon="['fas', 'heart']" class="navIcon" />
+          </span>
+          <span class="navLabel">Favorites</span>
+        </router-link>
+        <router-link
+          class="navOption"
+          role="button"
+          :to="isAegisWebEdition ? '/library/history' : '/history'"
           :title="historyTitle"
         >
           <span class="thumbnailContainer">
@@ -230,6 +242,7 @@ import { KeyboardShortcuts } from '../../../constants'
 
 const { t } = useI18n()
 const isAegisTube = process.env.AEGISTUBE_EDITION === true
+const isAegisWebEdition = process.env.AEGISOS_WEB_EDITION === true
 const homeLabel = 'Home'
 const followingLabel = 'Following'
 const sourceLabel = 'Source & Legal'
