@@ -284,24 +284,29 @@ export function createAegisWebLibraryExport(format, storage, now = Date.now()) {
  * briefly after the trusted click because browsers can consume it on a later
  * task. The exported metadata is never uploaded or otherwise transmitted.
  */
-export function triggerAegisWebLibraryDownload(format, {
-  documentRef = document,
-  urlApi = URL,
-  BlobCtor = Blob,
-  schedule = window.setTimeout.bind(window),
+export function requestAegisWebLibraryExport(format, {
+  windowRef = window,
+  storage,
+  now = Date.now(),
 } = {}) {
   const backup = createAegisWebLibraryExport(format)
-  if (backup === null || !documentRef?.body || typeof urlApi?.createObjectURL !== 'function') return false
+  if (
+    backup === null ||
+    !windowRef?.location ||
+    windowRef.parent === windowRef ||
+    typeof windowRef.parent?.postMessage !== 'function'
+  ) return false
+  const targetOrigin = windowRef.location.origin
+  if (typeof targetOrigin !== 'string' || !/^https?:\/\/[a-z0-9.-]+(?::\d+)?$/i.test(targetOrigin)) return false
 
-  const href = urlApi.createObjectURL(new BlobCtor([backup.content], { type: backup.mimeType }))
-  const link = documentRef.createElement('a')
-  link.href = href
-  link.download = backup.filename
-  link.rel = 'noopener'
-  link.style.display = 'none'
-  documentRef.body.appendChild(link)
-  link.click()
-  link.remove()
-  schedule(() => urlApi.revokeObjectURL(href), 1000)
+  const id = globalThis.crypto?.randomUUID?.() ?? `${now}-${Math.random().toString(36).slice(2)}`
+  windowRef.parent.postMessage({
+    channel: 'aegisos:freetube:v1',
+    type: 'browser-local-export',
+    id,
+    filename: backup.filename,
+    mimeType: backup.mimeType,
+    content: backup.content,
+  }, targetOrigin)
   return true
 }

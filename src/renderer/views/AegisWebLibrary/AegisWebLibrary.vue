@@ -78,7 +78,7 @@ import {
   recordAegisWebHistory,
   removeAegisWebLibraryEntry,
   renameAegisWebFolder,
-  triggerAegisWebLibraryDownload,
+  requestAegisWebLibraryExport,
   toggleAegisWebFolderMembership,
 } from '../../helpers/aegisWebLibrary.js'
 
@@ -114,7 +114,7 @@ function renameFolder() { if (selectedFolder.value) library.value = renameAegisW
 function deleteFolder() { if (selectedFolder.value) library.value = deleteAegisWebFolder(selectedFolder.value.id); refresh() }
 function toggleMember(videoId) { if (selectedFolder.value) library.value = toggleAegisWebFolderMembership(selectedFolder.value.id, videoId); refresh() }
 function downloadBackup(format) {
-  triggerAegisWebLibraryDownload(format)
+  requestAegisWebLibraryExport(format)
 }
 </script>
 
