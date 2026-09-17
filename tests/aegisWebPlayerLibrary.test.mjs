@@ -9,11 +9,14 @@ import {
   createAegisWebFolder,
   createAegisWebLibraryExport,
   deleteAegisWebFolder,
+  filterAegisWebFolders,
+  filterAegisWebLibraryEntries,
   isAegisWebFavorite,
   readAegisWebLibrary,
   recordAegisWebHistory,
   renameAegisWebFolder,
   requestAegisWebLibraryExport,
+  sortAegisWebLibraryEntries,
   toggleAegisWebFavorite,
   toggleAegisWebFolderMembership,
   updateAegisWebPlayerPreferences,
@@ -21,12 +24,14 @@ import {
 import {
   AEGIS_WEB_PLAYER_MESSAGE_ORIGIN,
   clampAegisWebPlayerVolume,
+  createAegisWebSeekPreview,
   createAegisWebPlayerCommand,
+  readAegisWebPlayerDuration,
   readAegisWebPlayerCurrentTime,
   resolveAegisWebPlayerShortcut,
 } from '../src/renderer/helpers/aegisWebPlayerControls.js'
 import { normalizeAegisWebMiniPlayerEntry } from '../src/renderer/helpers/aegisWebMiniPlayer.js'
-import { createAegisWebPlaybackUrl } from '../src/renderer/helpers/aegisWebPlayback.js'
+import { createAegisWebPlaybackUrl, createAegisWebTimestampShareUrl } from '../src/renderer/helpers/aegisWebPlayback.js'
 
 class MemoryStorage {
   #values = new Map()
@@ -62,8 +67,12 @@ test('official-player commands are allowlisted, serialized, and never accept arb
   assert.equal(AEGIS_WEB_PLAYER_MESSAGE_ORIGIN, 'https://www.youtube-nocookie.com')
   assert.deepEqual(JSON.parse(createAegisWebPlayerCommand('setVolume', [75])), { event: 'command', func: 'setVolume', args: [75] })
   assert.deepEqual(JSON.parse(createAegisWebPlayerCommand('getCurrentTime')), { event: 'command', func: 'getCurrentTime', args: [] })
+  assert.deepEqual(JSON.parse(createAegisWebPlayerCommand('getDuration')), { event: 'command', func: 'getDuration', args: [] })
+  assert.deepEqual(JSON.parse(createAegisWebPlayerCommand('seekTo', [42, true])), { event: 'command', func: 'seekTo', args: [42, true] })
   assert.equal(createAegisWebPlayerCommand('loadVideoByUrl', ['https://evil.example']), null)
   assert.equal(createAegisWebPlayerCommand('setVolume', [101]), null)
+  assert.equal(createAegisWebPlayerCommand('seekTo', [43201, true]), null)
+  assert.equal(createAegisWebPlayerCommand('getDuration', [1]), null)
   assert.equal(clampAegisWebPlayerVolume(103), 100)
   assert.equal(clampAegisWebPlayerVolume(-1), 0)
 })
@@ -72,6 +81,8 @@ test('player-time messages are bounded and only valid mini-player entries retain
   assert.equal(readAegisWebPlayerCurrentTime({ info: { currentTime: 72.8 } }), 72)
   assert.equal(readAegisWebPlayerCurrentTime({ info: { currentTime: 43201 } }), null)
   assert.equal(readAegisWebPlayerCurrentTime('{bad'), null)
+  assert.equal(readAegisWebPlayerDuration({ info: { duration: 301.9 } }), 301)
+  assert.equal(readAegisWebPlayerDuration({ info: { duration: 0 } }), null)
   assert.deepEqual(normalizeAegisWebMiniPlayerEntry({ ...firstVideo, resumeSeconds: 8.9 }), {
     videoId: firstVideo.videoId,
     title: firstVideo.title,
@@ -183,6 +194,52 @@ test('mini-player resume URLs remain constrained to a validated video ID, approv
   assert.match(url, /(?:\?|&)autoplay=1(?:&|$)/)
   assert.equal(createAegisWebPlaybackUrl({ videoId: firstVideo.videoId, origin: 'https://evil.example', autoplay: true }), null)
   assert.equal(createAegisWebPlaybackUrl({ videoId: firstVideo.videoId, origin: 'https://os.aegisos.me', startSeconds: 43201, autoplay: true }), null)
+})
+
+test('local library filters and ordering operate only on validated browser-local metadata', () => {
+  const entries = [
+    { ...firstVideo, watchedAt: 1000, savedAt: 1000 },
+    { ...secondVideo, watchedAt: 3000, savedAt: 3000 },
+    { videoId: 'invalid', title: 'Research', author: 'Unsafe' },
+  ]
+  assert.deepEqual(filterAegisWebLibraryEntries(entries, 'VALIDATED').map((item) => item.videoId), [firstVideo.videoId])
+  assert.deepEqual(filterAegisWebLibraryEntries(entries, 'M7lc1UVf-VE').map((item) => item.videoId), [secondVideo.videoId])
+  assert.deepEqual(sortAegisWebLibraryEntries(entries.slice(0, 2), 'recent').map((item) => item.videoId), [secondVideo.videoId, firstVideo.videoId])
+  assert.deepEqual(sortAegisWebLibraryEntries(entries.slice(0, 2), 'author').map((item) => item.videoId), [secondVideo.videoId, firstVideo.videoId])
+  const folders = [{ id: 'folder_research01', name: 'Research queue', videoIds: [firstVideo.videoId] }]
+  assert.deepEqual(filterAegisWebFolders(folders, entries, 'validated').map((folder) => folder.id), ['folder_research01'])
+  assert.equal(filterAegisWebLibraryEntries(entries, 'x'.repeat(500)).length, 0)
+})
+
+test('seek hover cues use only a bounded ID-derived canonical thumbnail and click-safe seconds', () => {
+  const preview = createAegisWebSeekPreview({
+    videoId: firstVideo.videoId,
+    duration: 120,
+    clientX: 150,
+    left: 100,
+    width: 200,
+  })
+  assert.deepEqual(preview, {
+    ratio: 0.25,
+    seconds: 30,
+    timestamp: '0:30',
+    thumbnail: 'https://i.ytimg.com/vi/dQw4w9WgXcQ/mq2.jpg',
+  })
+  assert.equal(createAegisWebSeekPreview({ videoId: 'https://bad.example', duration: 120, clientX: 0, left: 0, width: 100 }), null)
+  assert.equal(createAegisWebSeekPreview({ videoId: firstVideo.videoId, duration: 43201, clientX: 0, left: 0, width: 100 }), null)
+})
+
+test('timestamp shares remain pinned to canonical AegisOS and cannot carry arbitrary inputs', () => {
+  assert.equal(
+    createAegisWebTimestampShareUrl({ videoId: firstVideo.videoId, startSeconds: 92 }),
+    'https://os.aegisos.me/aegistube/index.html#/watch/dQw4w9WgXcQ?timestamp=92',
+  )
+  assert.equal(
+    createAegisWebTimestampShareUrl({ videoId: firstVideo.videoId }),
+    'https://os.aegisos.me/aegistube/index.html#/watch/dQw4w9WgXcQ',
+  )
+  assert.equal(createAegisWebTimestampShareUrl({ videoId: '../dQw4w9WgXcQ', startSeconds: 2 }), null)
+  assert.equal(createAegisWebTimestampShareUrl({ videoId: firstVideo.videoId, startSeconds: 43201 }), null)
 })
 
 test('retention limits are explicit and bounded', () => {
