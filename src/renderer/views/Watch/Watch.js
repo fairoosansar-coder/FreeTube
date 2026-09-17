@@ -56,6 +56,7 @@ import {
   readAegisWebPlayerDuration,
   readAegisWebPlayerCurrentTime,
   resolveAegisWebPlayerShortcut,
+  shouldQueryAegisWebPlayerDuration,
   AEGIS_WEB_PLAYER_MESSAGE_ORIGIN,
 } from '../../helpers/aegisWebPlayerControls'
 import {
@@ -215,6 +216,7 @@ export default defineComponent({
       aegisWebCurrentTime: 0,
       aegisWebDuration: 0,
       aegisWebSeekPreview: null,
+      aegisWebDurationProbeAttempt: 0,
     }
   },
   computed: {
@@ -545,6 +547,7 @@ export default defineComponent({
       this.aegisWebFavorite = isAegisWebFavorite(this.videoId)
       this.aegisWebDuration = 0
       this.aegisWebSeekPreview = null
+      this.aegisWebDurationProbeAttempt = 0
       recordAegisWebHistory({ videoId: this.videoId, title: this.videoTitle, author: this.channelName })
       window.removeEventListener('message', this.handleAegisWebPlayerMessage)
       window.addEventListener('message', this.handleAegisWebPlayerMessage)
@@ -552,7 +555,7 @@ export default defineComponent({
         this.startAegisWebPlayerControls()
         this.postAegisWebPlayerCommand('setVolume', [this.aegisWebVolume])
         if (this.aegisWebMuted) this.postAegisWebPlayerCommand('mute')
-        this.postAegisWebPlayerCommand('getDuration')
+        this.requestAegisWebPlayerDuration()
       })
       this.updateTitle()
     },
@@ -566,12 +569,30 @@ export default defineComponent({
       document.removeEventListener('keydown', this.handleAegisWebPlayerShortcut)
     },
 
+    requestAegisWebPlayerDuration: function () {
+      if (!shouldQueryAegisWebPlayerDuration({
+        duration: this.aegisWebDuration,
+        attempt: this.aegisWebDurationProbeAttempt,
+      })) return false
+      this.aegisWebDurationProbeAttempt += 1
+      return this.postAegisWebPlayerCommand('getDuration')
+    },
+
+    handleAegisWebPlayerLoaded: function () {
+      // The first query can race the official embed initialization. Permit one
+      // post-load query only; this stays within the fixed command and fixed
+      // youtube-nocookie origin boundary without introducing a polling loop.
+      this.requestAegisWebPlayerDuration()
+    },
+
     handleAegisWebPlayerMessage: function (event) {
       if (event?.origin !== AEGIS_WEB_PLAYER_MESSAGE_ORIGIN || event.source !== this.$refs.aegisWebPlayer?.contentWindow) return
       const currentTime = readAegisWebPlayerCurrentTime(event.data)
       if (currentTime !== null) this.aegisWebCurrentTime = currentTime
       const duration = readAegisWebPlayerDuration(event.data)
-      if (duration !== null) this.aegisWebDuration = duration
+      if (duration !== null) {
+        this.aegisWebDuration = duration
+      }
     },
 
     postAegisWebPlayerCommand: function (func, args = []) {
