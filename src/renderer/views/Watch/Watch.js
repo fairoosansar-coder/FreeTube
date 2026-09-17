@@ -44,6 +44,10 @@ import {
   normalizeAegisThumbnailUrl,
 } from '../../helpers/aegisReliability'
 import { isAegisNativeExtractorExpected } from '../../helpers/aegisBridge'
+import {
+  createAegisWebPlaybackUrl,
+  isAegisWebPlaybackMode,
+} from '../../helpers/aegisWebPlayback'
 import { sortCaptions } from '../../helpers/player/utils'
 import { MANIFEST_TYPE_SABR } from '../../helpers/player/SabrManifestParser'
 import { useI18n } from 'vue-i18n'
@@ -205,6 +209,19 @@ export default defineComponent({
     },
     backendPreference: function () {
       return this.$store.getters.getBackendPreference
+    },
+    aegisWebPlaybackUrl: function () {
+      if (!isAegisWebPlaybackMode({
+        webEdition: process.env.AEGISOS_WEB_EDITION,
+        nativeExtractor: isAegisNativeExtractorExpected(),
+      })) return null
+      return createAegisWebPlaybackUrl({
+        videoId: this.videoId,
+        origin: window.location.origin,
+      })
+    },
+    isAegisWebPlayback: function () {
+      return this.aegisWebPlaybackUrl !== null
     },
     backendFallback: function () {
       return this.$store.getters.getBackendFallback
@@ -380,6 +397,11 @@ export default defineComponent({
       this.checkIfPlaylist()
       this.setViewingModeOnRouteChange()
 
+      if (this.isAegisWebPlayback) {
+        this.startAegisWebPlayback()
+        return
+      }
+
       if (isAegisNativeExtractorExpected()) {
         await this.getVideoInformationLocal()
         return
@@ -453,6 +475,11 @@ export default defineComponent({
       // this has to be below checkIfPlaylist() as theatrePossible needs to know if there is a playlist or not
       this.setViewingModeOnFirstLoad()
 
+      if (this.isAegisWebPlayback) {
+        this.startAegisWebPlayback()
+        return
+      }
+
       if (!isAegisNativeExtractorExpected() && (!process.env.SUPPORTS_LOCAL_API || this.backendPreference === 'invidious')) {
         this.getVideoInformationInvidious()
       } else {
@@ -466,6 +493,18 @@ export default defineComponent({
 
       window.addEventListener('beforeunload', this.handleWatchProgressAutoSave)
       this.resetAutoplayInterruptionTimeout()
+    },
+
+    startAegisWebPlayback: function () {
+      // Browser playback deliberately receives no extracted formats, stream
+      // URLs, credentials, or proxy path. It displays only the validated ID in
+      // an origin-bound, user-operated privacy-enhanced official embed.
+      this.isFamilyFriendly = true
+      this.playabilityStatus = 'OK'
+      this.thumbnail = canonicalVideoThumbnail(this.videoId)
+      this.isLoading = false
+      this.videoPlayerLoaded = true
+      this.updateTitle()
     },
 
     setViewingModeOnFirstLoad: function () {

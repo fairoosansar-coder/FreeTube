@@ -4,7 +4,7 @@
     :class="{
       isLoading,
       useTheatreMode: useTheatreMode && !isLoading,
-      noSidebar: !theatrePossible
+      noSidebar: !theatrePossible || isAegisWebPlayback
     }"
   >
     <ft-loader
@@ -16,8 +16,18 @@
       class="videoArea"
     >
       <div class="videoAreaMargin">
+        <iframe
+          v-if="!isLoading && isAegisWebPlayback"
+          class="videoPlayer aegisWebEmbedPlayer"
+          :src="aegisWebPlaybackUrl"
+          :title="videoTitle || 'AegisTube web player'"
+          allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          allowfullscreen
+          loading="lazy"
+          referrerpolicy="strict-origin-when-cross-origin"
+        ></iframe>
         <ft-shaka-video-player
-          v-if="!isLoading && (!isUpcoming || playabilityStatus === 'OK') && !errorMessage"
+          v-else-if="!isLoading && (!isUpcoming || playabilityStatus === 'OK') && !errorMessage"
           ref="player"
           :manifest-src="manifestSrc"
           :manifest-mime-type="manifestMimeType"
@@ -125,7 +135,7 @@
       class="ageRestricted"
     />
     <div
-      v-if="(isFamilyFriendly || !showFamilyFriendlyOnly)"
+      v-if="(isFamilyFriendly || !showFamilyFriendlyOnly) && !isAegisWebPlayback"
       class="infoArea"
     >
       <watch-video-info
@@ -188,7 +198,7 @@
       />
     </div>
     <div
-      v-if="(isFamilyFriendly || !showFamilyFriendlyOnly)"
+      v-if="(isFamilyFriendly || !showFamilyFriendlyOnly) && !isAegisWebPlayback"
       class="sidebarArea"
     >
       <watch-video-live-chat

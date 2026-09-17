@@ -84,6 +84,14 @@
       max-inline-size: calc(80vh * 1.78);
       position: relative;
 
+      &.aegisWebEmbedPlayer {
+        aspect-ratio: 16 / 9;
+        border: 0;
+        display: block;
+        inline-size: 100%;
+        min-block-size: 200px;
+      }
+
       .videoThumbnail {
         inline-size: 100%;
       }
