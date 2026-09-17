@@ -73,12 +73,12 @@ import { useRoute } from 'vue-router'
 import {
   clearAegisWebLibraryCollection,
   createAegisWebFolder,
-  createAegisWebLibraryExport,
   deleteAegisWebFolder,
   readAegisWebLibrary,
   recordAegisWebHistory,
   removeAegisWebLibraryEntry,
   renameAegisWebFolder,
+  triggerAegisWebLibraryDownload,
   toggleAegisWebFolderMembership,
 } from '../../helpers/aegisWebLibrary.js'
 
@@ -114,15 +114,7 @@ function renameFolder() { if (selectedFolder.value) library.value = renameAegisW
 function deleteFolder() { if (selectedFolder.value) library.value = deleteAegisWebFolder(selectedFolder.value.id); refresh() }
 function toggleMember(videoId) { if (selectedFolder.value) library.value = toggleAegisWebFolderMembership(selectedFolder.value.id, videoId); refresh() }
 function downloadBackup(format) {
-  const backup = createAegisWebLibraryExport(format)
-  if (backup === null || typeof URL === 'undefined') return
-  const url = URL.createObjectURL(new Blob([backup.content], { type: backup.mimeType }))
-  const link = document.createElement('a')
-  link.href = url
-  link.download = backup.filename
-  link.rel = 'noopener'
-  link.click()
-  window.setTimeout(() => URL.revokeObjectURL(url), 0)
+  triggerAegisWebLibraryDownload(format)
 }
 </script>
 
