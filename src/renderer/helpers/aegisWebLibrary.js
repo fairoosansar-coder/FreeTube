@@ -278,3 +278,30 @@ export function createAegisWebLibraryExport(format, storage, now = Date.now()) {
   ]
   return { filename: `${stem}.csv`, mimeType: 'text/csv;charset=utf-8', content: `${headers.join(',')}\n${records.map((record) => headers.map((header) => csvCell(record[header])).join(',')).join('\n')}\n` }
 }
+
+/**
+ * Generates an explicit browser-local download. The Blob URL remains alive
+ * briefly after the trusted click because browsers can consume it on a later
+ * task. The exported metadata is never uploaded or otherwise transmitted.
+ */
+export function triggerAegisWebLibraryDownload(format, {
+  documentRef = document,
+  urlApi = URL,
+  BlobCtor = Blob,
+  schedule = window.setTimeout.bind(window),
+} = {}) {
+  const backup = createAegisWebLibraryExport(format)
+  if (backup === null || !documentRef?.body || typeof urlApi?.createObjectURL !== 'function') return false
+
+  const href = urlApi.createObjectURL(new BlobCtor([backup.content], { type: backup.mimeType }))
+  const link = documentRef.createElement('a')
+  link.href = href
+  link.download = backup.filename
+  link.rel = 'noopener'
+  link.style.display = 'none'
+  documentRef.body.appendChild(link)
+  link.click()
+  link.remove()
+  schedule(() => urlApi.revokeObjectURL(href), 1000)
+  return true
+}
