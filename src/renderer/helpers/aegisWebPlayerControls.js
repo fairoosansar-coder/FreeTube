@@ -1,5 +1,6 @@
 export const AEGIS_WEB_PLAYER_MESSAGE_ORIGIN = 'https://www.youtube-nocookie.com'
 export const AEGIS_WEB_PLAYER_MAX_SECONDS = 43200
+export const AEGIS_WEB_PLAYER_DURATION_QUERY_ATTEMPTS = 2
 
 const VIDEO_ID_PATTERN = /^[A-Za-z0-9_-]{11}$/
 
@@ -65,6 +66,15 @@ export function readAegisWebPlayerDuration(message) {
   }
   const duration = boundedSeconds(parsed?.info?.duration)
   return duration !== null && duration > 0 ? duration : null
+}
+
+/**
+ * Permit one retry after the official iframe's load event. This is a bounded
+ * readiness probe, not a polling loop and it cannot target a different player
+ * command or origin.
+ */
+export function shouldQueryAegisWebPlayerDuration({ duration, attempt }) {
+  return duration <= 0 && Number.isInteger(attempt) && attempt >= 0 && attempt < AEGIS_WEB_PLAYER_DURATION_QUERY_ATTEMPTS
 }
 
 function formatSeconds(value) {

@@ -42,6 +42,7 @@
             allowfullscreen
             loading="lazy"
             referrerpolicy="strict-origin-when-cross-origin"
+            @load="handleAegisWebPlayerLoaded"
           ></iframe>
           <button
             v-if="aegisWebDuration > 0"

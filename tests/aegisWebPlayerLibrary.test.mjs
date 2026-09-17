@@ -29,6 +29,7 @@ import {
   readAegisWebPlayerDuration,
   readAegisWebPlayerCurrentTime,
   resolveAegisWebPlayerShortcut,
+  shouldQueryAegisWebPlayerDuration,
 } from '../src/renderer/helpers/aegisWebPlayerControls.js'
 import { normalizeAegisWebMiniPlayerEntry } from '../src/renderer/helpers/aegisWebMiniPlayer.js'
 import { createAegisWebPlaybackUrl, createAegisWebTimestampShareUrl } from '../src/renderer/helpers/aegisWebPlayback.js'
@@ -91,6 +92,15 @@ test('player-time messages are bounded and only valid mini-player entries retain
     resumeSeconds: 8,
   })
   assert.equal(normalizeAegisWebMiniPlayerEntry({ ...firstVideo, videoId: 'https://bad.example' }), null)
+})
+
+test('official-player duration readiness allows exactly two bounded queries and never polls', () => {
+  assert.equal(shouldQueryAegisWebPlayerDuration({ duration: 0, attempt: 0 }), true)
+  assert.equal(shouldQueryAegisWebPlayerDuration({ duration: 0, attempt: 1 }), true)
+  assert.equal(shouldQueryAegisWebPlayerDuration({ duration: 0, attempt: 2 }), false)
+  assert.equal(shouldQueryAegisWebPlayerDuration({ duration: 120, attempt: 0 }), false)
+  assert.equal(shouldQueryAegisWebPlayerDuration({ duration: 0, attempt: -1 }), false)
+  assert.equal(shouldQueryAegisWebPlayerDuration({ duration: 0, attempt: 1.5 }), false)
 })
 
 test('favorites retain only validated canonical metadata and toggle deterministically', () => {
