@@ -279,6 +279,60 @@
 
 :global([data-aegis-accent] .aegisWebControlSpacer) { flex: 1; }
 
+:global([data-aegis-accent] .aegisWebSeekBar) {
+  appearance: none;
+  background: rgb(255 255 255 / 12%);
+  border: 0;
+  cursor: pointer;
+  display: block;
+  height: 8px;
+  margin: 0;
+  padding: 0;
+  position: relative;
+  width: 100%;
+}
+
+:global([data-aegis-accent] .aegisWebSeekBar:focus-visible) {
+  outline: 2px solid #f4c95d;
+  outline-offset: 3px;
+}
+
+:global([data-aegis-accent] .aegisWebSeekFill) {
+  background: #f4c95d;
+  display: block;
+  height: 100%;
+  pointer-events: none;
+}
+
+:global([data-aegis-accent] .aegisWebSeekPreview) {
+  bottom: 16px;
+  display: grid;
+  gap: 5px;
+  pointer-events: none;
+  position: absolute;
+  transform: translateX(-50%);
+  width: 150px;
+}
+
+:global([data-aegis-accent] .aegisWebSeekPreview img) {
+  aspect-ratio: 16 / 9;
+  background: #05070b;
+  border: 1px solid rgb(244 201 93 / 80%);
+  border-radius: 5px;
+  display: block;
+  object-fit: cover;
+  width: 100%;
+}
+
+:global([data-aegis-accent] .aegisWebSeekPreview strong) {
+  background: rgb(0 0 0 / 84%);
+  border-radius: 4px;
+  color: #fff;
+  font-size: 11px;
+  justify-self: center;
+  padding: 3px 6px;
+}
+
 :global([data-aegis-accent] .aegisWebTheatreMode) {
   background: #05070b;
   margin-inline: calc(50% - 50vw);

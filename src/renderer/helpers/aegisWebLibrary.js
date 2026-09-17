@@ -233,6 +233,51 @@ export function updateAegisWebPlayerPreferences(update, storage) {
   return commit(library, storage).preferences
 }
 
+/**
+ * Filter browser-local records only. Query text is normalized, bounded, and
+ * matched against the already validated local title, author, and ID fields;
+ * it never becomes a provider query or URL.
+ */
+export function filterAegisWebLibraryEntries(entries, query = '') {
+  const needle = cleanText(query, 120).toLocaleLowerCase()
+  if (!Array.isArray(entries)) return []
+  if (needle === '') return entries.slice()
+  return entries.filter((item) => {
+    if (item === null || typeof item !== 'object' || !VIDEO_ID_PATTERN.test(item.videoId || '')) return false
+    return [item.videoId, item.title, item.author]
+      .some((value) => typeof value === 'string' && value.toLocaleLowerCase().includes(needle))
+  })
+}
+
+/** Sort a copied local result set; no provider data, date parsing, or request is involved. */
+export function sortAegisWebLibraryEntries(entries, sort = 'recent', timeKey = 'watchedAt') {
+  if (!Array.isArray(entries)) return []
+  const field = sort === 'title' ? 'title' : sort === 'author' ? 'author' : null
+  return entries.slice().sort((left, right) => {
+    if (field !== null) {
+      const byText = String(left?.[field] || '').localeCompare(String(right?.[field] || ''), undefined, { sensitivity: 'base' })
+      if (byText !== 0) return byText
+    } else {
+      const byTime = timestamp(right?.[timeKey], 0) - timestamp(left?.[timeKey], 0)
+      if (byTime !== 0) return byTime
+    }
+    return String(left?.videoId || '').localeCompare(String(right?.videoId || ''))
+  })
+}
+
+/** Filter saved folders by their own label or by the local favorite records they contain. */
+export function filterAegisWebFolders(folders, favorites, query = '') {
+  const needle = cleanText(query, 120).toLocaleLowerCase()
+  if (!Array.isArray(folders)) return []
+  if (needle === '') return folders.slice()
+  const matchingIds = new Set(filterAegisWebLibraryEntries(favorites, needle).map((item) => item.videoId))
+  return folders.filter((folder) => {
+    if (folder === null || typeof folder !== 'object' || !FOLDER_ID_PATTERN.test(folder.id || '')) return false
+    return cleanText(folder.name, TEXT_LIMITS.folderName).toLocaleLowerCase().includes(needle) ||
+      (Array.isArray(folder.videoIds) && folder.videoIds.some((videoId) => matchingIds.has(videoId)))
+  })
+}
+
 function csvCell(value) {
   const text = String(value ?? '').replace(/[\u0000-\u001f\u007f]/g, ' ')
   const neutralized = /^[=+\-@]/.test(text) ? `'${text}` : text

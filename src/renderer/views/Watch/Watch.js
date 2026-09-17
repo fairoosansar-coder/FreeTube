@@ -46,11 +46,14 @@ import {
 import { isAegisNativeExtractorExpected } from '../../helpers/aegisBridge'
 import {
   createAegisWebPlaybackUrl,
+  createAegisWebTimestampShareUrl,
   isAegisWebPlaybackMode,
 } from '../../helpers/aegisWebPlayback'
 import {
   clampAegisWebPlayerVolume,
+  createAegisWebSeekPreview,
   createAegisWebPlayerCommand,
+  readAegisWebPlayerDuration,
   readAegisWebPlayerCurrentTime,
   resolveAegisWebPlayerShortcut,
   AEGIS_WEB_PLAYER_MESSAGE_ORIGIN,
@@ -210,6 +213,8 @@ export default defineComponent({
       aegisWebAssumedPlaying: false,
       aegisWebFavorite: false,
       aegisWebCurrentTime: 0,
+      aegisWebDuration: 0,
+      aegisWebSeekPreview: null,
     }
   },
   computed: {
@@ -246,6 +251,10 @@ export default defineComponent({
     },
     isAegisWebPlayback: function () {
       return this.aegisWebPlaybackUrl !== null
+    },
+    aegisWebPlayerPosition: function () {
+      if (!Number.isInteger(this.aegisWebDuration) || this.aegisWebDuration <= 0) return 0
+      return Math.min(100, Math.max(0, (this.aegisWebCurrentTime / this.aegisWebDuration) * 100))
     },
     backendFallback: function () {
       return this.$store.getters.getBackendFallback
@@ -534,6 +543,8 @@ export default defineComponent({
       this.aegisWebVolume = preferences.volume
       this.aegisWebMuted = preferences.muted
       this.aegisWebFavorite = isAegisWebFavorite(this.videoId)
+      this.aegisWebDuration = 0
+      this.aegisWebSeekPreview = null
       recordAegisWebHistory({ videoId: this.videoId, title: this.videoTitle, author: this.channelName })
       window.removeEventListener('message', this.handleAegisWebPlayerMessage)
       window.addEventListener('message', this.handleAegisWebPlayerMessage)
@@ -541,6 +552,7 @@ export default defineComponent({
         this.startAegisWebPlayerControls()
         this.postAegisWebPlayerCommand('setVolume', [this.aegisWebVolume])
         if (this.aegisWebMuted) this.postAegisWebPlayerCommand('mute')
+        this.postAegisWebPlayerCommand('getDuration')
       })
       this.updateTitle()
     },
@@ -558,6 +570,8 @@ export default defineComponent({
       if (event?.origin !== AEGIS_WEB_PLAYER_MESSAGE_ORIGIN || event.source !== this.$refs.aegisWebPlayer?.contentWindow) return
       const currentTime = readAegisWebPlayerCurrentTime(event.data)
       if (currentTime !== null) this.aegisWebCurrentTime = currentTime
+      const duration = readAegisWebPlayerDuration(event.data)
+      if (duration !== null) this.aegisWebDuration = duration
     },
 
     postAegisWebPlayerCommand: function (func, args = []) {
@@ -622,6 +636,45 @@ export default defineComponent({
     toggleAegisWebFavorite: function () {
       const result = toggleAegisWebFavorite({ videoId: this.videoId, title: this.videoTitle, author: this.channelName })
       this.aegisWebFavorite = result.isFavorite
+    },
+
+    updateAegisWebSeekPreview: function (event) {
+      const bounds = event?.currentTarget?.getBoundingClientRect?.()
+      this.aegisWebSeekPreview = createAegisWebSeekPreview({
+        videoId: this.videoId,
+        duration: this.aegisWebDuration,
+        clientX: event?.clientX,
+        left: bounds?.left,
+        width: bounds?.width,
+      })
+    },
+
+    clearAegisWebSeekPreview: function () {
+      this.aegisWebSeekPreview = null
+    },
+
+    seekAegisWebPlayback: function (event) {
+      this.updateAegisWebSeekPreview(event)
+      const preview = this.aegisWebSeekPreview
+      if (preview === null) return
+      this.aegisWebCurrentTime = preview.seconds
+      this.postAegisWebPlayerCommand('seekTo', [preview.seconds, true])
+    },
+
+    seekAegisWebPlaybackRelative: function (delta) {
+      const target = Math.min(this.aegisWebDuration, Math.max(0, this.aegisWebCurrentTime + delta))
+      if (!Number.isInteger(target)) return
+      this.aegisWebCurrentTime = target
+      this.postAegisWebPlayerCommand('seekTo', [target, true])
+    },
+
+    shareAegisWebTimestamp: function () {
+      // The clipboard payload is a fixed os.aegisos.me hash route built only
+      // from the already validated video ID and a bounded player timestamp.
+      const link = createAegisWebTimestampShareUrl({ videoId: this.videoId, startSeconds: this.aegisWebCurrentTime })
+      if (link === null) return
+      this.postAegisWebPlayerCommand('getCurrentTime')
+      copyToClipboard(link, { messageOnSuccess: 'AegisTube link copied' })
     },
 
     moveAegisWebPlayerToMini: function () {

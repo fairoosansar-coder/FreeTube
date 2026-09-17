@@ -26,6 +26,7 @@
             <span aria-live="polite">{{ aegisWebVolume }}%</span>
             <button type="button" title="Increase volume (Arrow Up)" @click="changeAegisWebVolume(5)">+</button>
             <button type="button" :aria-pressed="aegisWebFavorite" :title="aegisWebFavorite ? 'Remove from favorites' : 'Save to favorites'" @click="toggleAegisWebFavorite">Favorite</button>
+            <button type="button" title="Copy AegisTube link at current time" @click="shareAegisWebTimestamp">Share</button>
             <button type="button" title="Continue in mini player" @click="moveAegisWebPlayerToMini">Mini player</button>
             <span class="aegisWebControlSpacer" />
             <button type="button" :aria-pressed="aegisWebTheatreMode" title="Toggle theater mode (T)" @click="toggleAegisWebTheatre">Theater</button>
@@ -42,6 +43,26 @@
             loading="lazy"
             referrerpolicy="strict-origin-when-cross-origin"
           ></iframe>
+          <button
+            v-if="aegisWebDuration > 0"
+            type="button"
+            class="aegisWebSeekBar"
+            :aria-label="`Seek video. Current position ${aegisWebSeekPreview?.timestamp ?? 'unknown'}.`"
+            title="Hover for a timestamp preview. Click to seek; use Left or Right Arrow for five seconds."
+            @mousemove="updateAegisWebSeekPreview"
+            @mouseleave="clearAegisWebSeekPreview"
+            @focus="clearAegisWebSeekPreview"
+            @blur="clearAegisWebSeekPreview"
+            @click="seekAegisWebPlayback"
+            @keydown.left.prevent="seekAegisWebPlaybackRelative(-5)"
+            @keydown.right.prevent="seekAegisWebPlaybackRelative(5)"
+          >
+            <span class="aegisWebSeekFill" :style="{ width: `${aegisWebPlayerPosition}%` }" />
+            <span v-if="aegisWebSeekPreview" class="aegisWebSeekPreview" :style="{ left: `${aegisWebSeekPreview.ratio * 100}%` }">
+              <img :src="aegisWebSeekPreview.thumbnail" :alt="`Preview at ${aegisWebSeekPreview.timestamp}`">
+              <strong>{{ aegisWebSeekPreview.timestamp }}</strong>
+            </span>
+          </button>
         </div>
         <ft-shaka-video-player
           v-else-if="!isLoading && (!isUpcoming || playabilityStatus === 'OK') && !errorMessage"

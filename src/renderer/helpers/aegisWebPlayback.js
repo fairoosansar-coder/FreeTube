@@ -1,4 +1,5 @@
 export const AEGIS_WEB_PLAYBACK_EMBED_ORIGIN = 'https://www.youtube-nocookie.com'
+export const AEGIS_WEB_SHARE_ORIGIN = 'https://os.aegisos.me'
 
 const AEGIS_WEB_ORIGIN_PATTERN = /^https:\/\/[a-z0-9-]+\.aegisos\.pages\.dev$/
 const ALLOWED_AEGIS_WEB_ORIGINS = new Set([
@@ -6,6 +7,11 @@ const ALLOWED_AEGIS_WEB_ORIGINS = new Set([
   'https://app.aegisos.me',
 ])
 const VIDEO_ID_PATTERN = /^[A-Za-z0-9_-]{11}$/
+
+/** Keep browser player timestamps bounded before they can affect a URL or command. */
+export function normalizeAegisWebStartSeconds(value) {
+  return Number.isInteger(value) && value >= 0 && value <= 43200 ? value : null
+}
 
 export function isAegisWebPlaybackMode({ webEdition, nativeExtractor }) {
   return Boolean(webEdition) && nativeExtractor !== true
@@ -30,7 +36,7 @@ export function isAllowedAegisWebOrigin(value) {
 export function createAegisWebPlaybackUrl({ videoId, origin, startSeconds = 0, autoplay = false }) {
   if (typeof videoId !== 'string' || !VIDEO_ID_PATTERN.test(videoId)) return null
   if (!isAllowedAegisWebOrigin(origin)) return null
-  if (!Number.isInteger(startSeconds) || startSeconds < 0 || startSeconds > 43200) return null
+  if (normalizeAegisWebStartSeconds(startSeconds) === null) return null
   if (typeof autoplay !== 'boolean') return null
 
   const url = new URL(`/embed/${videoId}`, AEGIS_WEB_PLAYBACK_EMBED_ORIGIN)
@@ -44,6 +50,19 @@ export function createAegisWebPlaybackUrl({ videoId, origin, startSeconds = 0, a
   url.searchParams.set('playsinline', '1')
   url.searchParams.set('rel', '0')
   if (startSeconds > 0) url.searchParams.set('start', String(startSeconds))
+  return url.toString()
+}
+
+/**
+ * Create the only browser share link: the fixed AegisOS host plus a validated
+ * hash-route video ID and an optional bounded playback timestamp. It cannot
+ * carry a provider URL, media URL, playlist injection, or tracking payload.
+ */
+export function createAegisWebTimestampShareUrl({ videoId, startSeconds = 0 }) {
+  if (typeof videoId !== 'string' || !VIDEO_ID_PATTERN.test(videoId)) return null
+  if (normalizeAegisWebStartSeconds(startSeconds) === null) return null
+  const url = new URL('/aegistube/index.html', AEGIS_WEB_SHARE_ORIGIN)
+  url.hash = `/watch/${videoId}${startSeconds > 0 ? `?timestamp=${startSeconds}` : ''}`
   return url.toString()
 }
 

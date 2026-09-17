@@ -14,10 +14,14 @@
     </header>
 
     <template v-if="collection !== 'folders'">
+      <div class="libraryFilters" role="search">
+        <label class="filterField" for="aegis-web-library-search">Find saved videos<input id="aegis-web-library-search" v-model="query" type="search" maxlength="120" placeholder="Search title, channel, or video ID" autocomplete="off"></label>
+        <label class="filterField" for="aegis-web-library-order">Order<select id="aegis-web-library-order" v-model="sortOrder"><option value="recent">Most recent</option><option value="title">Title A–Z</option><option value="author">Channel A–Z</option></select></label>
+      </div>
       <div v-if="items.length === 0" class="emptyState">
         <FontAwesomeIcon :icon="collection === 'favorites' ? ['fas', 'heart'] : ['fas', 'history']" />
-        <h2>{{ collection === 'favorites' ? 'No favorites yet' : 'No watch history yet' }}</h2>
-        <p>{{ collection === 'favorites' ? 'Use the heart on a video card or player to save it here.' : 'Videos you open in AegisTube web stay on this device.' }}</p>
+        <h2>{{ rawItems.length > 0 ? 'No matching local videos' : collection === 'favorites' ? 'No favorites yet' : 'No watch history yet' }}</h2>
+        <p>{{ rawItems.length > 0 ? 'Try a different title, channel, or video ID.' : collection === 'favorites' ? 'Use the heart on a video card or player to save it here.' : 'Videos you open in AegisTube web stay on this device.' }}</p>
         <RouterLink to="/popular">Explore videos</RouterLink>
       </div>
       <ol v-else class="libraryGrid">
@@ -33,6 +37,9 @@
     </template>
 
     <template v-else>
+      <div class="libraryFilters" role="search">
+        <label class="filterField" for="aegis-web-folder-search">Find folders or saved videos<input id="aegis-web-folder-search" v-model="query" type="search" maxlength="120" placeholder="Search folder, title, channel, or video ID" autocomplete="off"></label>
+      </div>
       <div class="folderComposer">
         <label for="aegis-web-folder-name">New folder or playlist</label>
         <div><input id="aegis-web-folder-name" v-model="newFolderName" maxlength="80" placeholder="e.g. Research" @keyup.enter="createFolder"><button type="button" @click="createFolder">Create</button></div>
@@ -44,9 +51,14 @@
         <p>Create a folder, then organize the videos in your local Favorites list.</p>
         <RouterLink to="/library/favorites">Open favorites</RouterLink>
       </div>
+      <div v-else-if="filteredFolders.length === 0" class="emptyState">
+        <FontAwesomeIcon :icon="['fas', 'magnifying-glass']" />
+        <h2>No matching local folders</h2>
+        <p>Try a different folder name, video title, channel, or video ID.</p>
+      </div>
       <div v-else class="folderWorkspace">
         <ol class="folderList" aria-label="Saved folders">
-          <li v-for="folder in library.folders" :key="folder.id">
+          <li v-for="folder in filteredFolders" :key="folder.id">
             <button type="button" :class="{ selected: selectedFolderId === folder.id }" @click="selectedFolderId = folder.id"><FontAwesomeIcon :icon="['fas', 'folder']" /> {{ folder.name }} <small>{{ folder.videoIds.length }}</small></button>
           </li>
         </ol>
@@ -56,7 +68,7 @@
           <p class="folderHelp">Select saved favorites to include in this folder. Removing a favorite also removes only its local folder memberships.</p>
           <p v-if="library.favorites.length === 0" class="emptyFolderMessage">Save a favorite first, then return here to organize it.</p>
           <ul v-else class="membershipList">
-            <li v-for="item in library.favorites" :key="item.videoId">
+            <li v-for="item in folderFavorites" :key="item.videoId">
               <label><input type="checkbox" :checked="selectedFolder.videoIds.includes(item.videoId)" @change="toggleMember(item.videoId)"><img :src="item.thumbnail" alt=""><span><strong>{{ item.title || `Video ${item.videoId}` }}</strong><small v-if="item.author">{{ item.author }}</small></span></label>
             </li>
           </ul>
@@ -74,11 +86,14 @@ import {
   clearAegisWebLibraryCollection,
   createAegisWebFolder,
   deleteAegisWebFolder,
+  filterAegisWebFolders,
+  filterAegisWebLibraryEntries,
   readAegisWebLibrary,
   recordAegisWebHistory,
   removeAegisWebLibraryEntry,
   renameAegisWebFolder,
   requestAegisWebLibraryExport,
+  sortAegisWebLibraryEntries,
   toggleAegisWebFolderMembership,
 } from '../../helpers/aegisWebLibrary.js'
 
@@ -87,6 +102,8 @@ const library = ref(readAegisWebLibrary())
 const newFolderName = ref('')
 const selectedFolderId = ref('')
 const selectedFolderName = ref('')
+const query = ref('')
+const sortOrder = ref('recent')
 const collection = computed(() => ['favorites', 'history', 'folders'].includes(route.params.collection) ? route.params.collection : 'history')
 const title = computed(() => ({ favorites: 'Favorites', history: 'Watch history', folders: 'Folders & playlists' })[collection.value])
 const subtitle = computed(() => ({
@@ -94,11 +111,25 @@ const subtitle = computed(() => ({
   history: 'Saved on this browser from AegisTube web visits. Remove individual entries or clear the list anytime.',
   folders: 'Organize favorites on this browser. Export a portable backup at any time; nothing is uploaded.',
 }[collection.value]))
-const items = computed(() => collection.value === 'folders' ? library.value.folders : library.value[collection.value])
+const rawItems = computed(() => collection.value === 'folders' ? [] : library.value[collection.value])
+const items = computed(() => sortAegisWebLibraryEntries(
+  filterAegisWebLibraryEntries(rawItems.value, query.value),
+  sortOrder.value,
+  collection.value === 'favorites' ? 'savedAt' : 'watchedAt',
+))
+const filteredFolders = computed(() => filterAegisWebFolders(library.value.folders, library.value.favorites, query.value))
 const selectedFolder = computed(() => library.value.folders.find((folder) => folder.id === selectedFolderId.value) ?? null)
+const folderFavorites = computed(() => sortAegisWebLibraryEntries(
+  filterAegisWebLibraryEntries(library.value.favorites, query.value),
+  sortOrder.value,
+  'savedAt',
+))
 
-watch(collection, () => { refresh() })
+watch(collection, () => { query.value = ''; sortOrder.value = 'recent'; refresh() })
 watch(selectedFolder, (folder) => { selectedFolderName.value = folder?.name ?? '' })
+watch(filteredFolders, (folders) => {
+  if (selectedFolderId.value === '' || !folders.some((folder) => folder.id === selectedFolderId.value)) selectedFolderId.value = folders[0]?.id ?? ''
+})
 
 function refresh() {
   library.value = readAegisWebLibrary()
@@ -119,6 +150,7 @@ function downloadBackup(format) {
 </script>
 
 <style scoped>
-.aegisWebLibrary { color: #eaf0fa; margin: 0 auto; max-width: 1320px; padding: 28px; }.libraryHeader { align-items: flex-start; border-bottom: 1px solid rgb(151 169 203 / 20%); display: flex; gap: 24px; justify-content: space-between; padding-bottom: 20px; }.eyebrow { color: #8ea4c9; font-size: .75rem; font-weight: 700; letter-spacing: .14em; margin: 0 0 6px; text-transform: uppercase; }h1 { font-size: clamp(1.6rem, 3vw, 2.4rem); margin: 0; }.libraryHeader p:not(.eyebrow) { color: #afbdd3; margin: 8px 0 0; max-width: 660px; }.headerActions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }.headerActions button, .cardFooter button, .folderComposer button, .renameRow button, .dangerButton { background: transparent; border: 1px solid rgb(232 179 60 / 55%); border-radius: 8px; color: #f4c95d; cursor: pointer; font: inherit; padding: 9px 12px; }.headerActions button:hover, button:focus-visible, .folderList button.selected { background: rgb(232 179 60 / 16%); border-color: #f4c95d; }.dangerButton { border-color: rgb(255 115 115 / 55%); color: #ff9a9a; }.emptyState { align-items: center; border: 1px dashed rgb(151 169 203 / 28%); border-radius: 16px; color: #b7c5dc; display: flex; flex-direction: column; margin-top: 28px; padding: 56px 20px; text-align: center; }.emptyState svg { color: #f4c95d; font-size: 2.5rem; }.emptyState h2 { color: #edf3ff; margin-bottom: 0; }.emptyState a, .manageFoldersLink { color: #f4c95d; margin-top: 8px; }.libraryGrid { display: grid; gap: 18px; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); list-style: none; margin: 28px 0 0; padding: 0; }.libraryCard { background: #101722; border: 1px solid rgb(151 169 203 / 16%); border-radius: 12px; overflow: hidden; }.cardLink { color: inherit; display: block; text-decoration: none; }.cardLink img { aspect-ratio: 16 / 9; background: #05070b; display: block; object-fit: cover; width: 100%; }.cardBody { display: grid; gap: 5px; padding: 12px; }.cardBody strong { line-height: 1.35; }.cardBody small, .cardFooter time { color: #9daec8; }.cardFooter { align-items: center; border-top: 1px solid rgb(151 169 203 / 12%); display: flex; gap: 10px; justify-content: space-between; padding: 10px 12px; }.cardFooter time { font-size: .72rem; }.cardFooter button { border-color: transparent; font-size: .78rem; padding: 4px 0; }.manageFoldersLink { display: inline-block; font-weight: 700; }.folderComposer { background: #101722; border: 1px solid rgb(151 169 203 / 18%); border-radius: 13px; margin-top: 24px; padding: 18px; }.folderComposer label, .renameRow label { display: block; font-size: .8rem; font-weight: 700; margin-bottom: 7px; }.folderComposer div, .renameRow { display: flex; gap: 8px; }.folderComposer input, .renameRow input { background: #070b11; border: 1px solid rgb(151 169 203 / 35%); border-radius: 8px; color: #eff4ff; flex: 1; font: inherit; min-width: 0; padding: 9px 10px; }.folderComposer p, .folderHelp { color: #9daec8; font-size: .78rem; margin: 10px 0 0; }.folderWorkspace { display: grid; gap: 22px; grid-template-columns: minmax(210px, 280px) 1fr; margin-top: 24px; }.folderList { display: grid; gap: 7px; list-style: none; margin: 0; padding: 0; }.folderList button { background: #0d131e; border: 1px solid rgb(151 169 203 / 18%); border-radius: 8px; color: #eaf0fa; cursor: pointer; display: flex; gap: 8px; padding: 10px; text-align: left; width: 100%; }.folderList svg { color: #f4c95d; }.folderList small { color: #9daec8; margin-left: auto; }.folderDetails { background: #101722; border: 1px solid rgb(151 169 203 / 18%); border-radius: 13px; padding: 20px; }.folderTitleRow { align-items: center; display: flex; gap: 14px; justify-content: space-between; }.folderTitleRow h2 { margin: 0; }.renameRow { margin-top: 15px; }.renameRow label { align-self: center; margin: 0; }.membershipList { display: grid; gap: 9px; list-style: none; margin: 18px 0 0; padding: 0; }.membershipList label { align-items: center; background: #0a0f17; border: 1px solid rgb(151 169 203 / 16%); border-radius: 9px; cursor: pointer; display: flex; gap: 10px; padding: 8px; }.membershipList input { accent-color: #f4c95d; }.membershipList img { aspect-ratio: 16 / 9; object-fit: cover; width: 92px; }.membershipList span { display: grid; gap: 3px; min-width: 0; }.membershipList strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }.membershipList small { color: #9daec8; }.emptyFolderMessage { color: #9daec8; }
-@media (width <= 680px) { .aegisWebLibrary { padding: 18px 14px; }.libraryHeader, .folderWorkspace { flex-direction: column; grid-template-columns: 1fr; }.headerActions { justify-content: flex-start; }.headerActions button { flex: 1; }.folderTitleRow { align-items: flex-start; flex-direction: column; }.folderComposer div, .renameRow { flex-wrap: wrap; }.folderComposer input, .renameRow input { flex-basis: 100%; }.folderComposer button, .renameRow button { flex: 1; } }
+.aegisWebLibrary { color: #eaf0fa; margin: 0 auto; max-width: 1320px; padding: 28px; }.libraryHeader { align-items: flex-start; border-bottom: 1px solid rgb(151 169 203 / 20%); display: flex; gap: 24px; justify-content: space-between; padding-bottom: 20px; }.eyebrow { color: #8ea4c9; font-size: .75rem; font-weight: 700; letter-spacing: .14em; margin: 0 0 6px; text-transform: uppercase; }h1 { font-size: clamp(1.6rem, 3vw, 2.4rem); margin: 0; }.libraryHeader p:not(.eyebrow) { color: #afbdd3; margin: 8px 0 0; max-width: 660px; }.headerActions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }.headerActions button, .cardFooter button, .folderComposer button, .renameRow button, .dangerButton { background: transparent; border: 1px solid rgb(232 179 60 / 55%); border-radius: 8px; color: #f4c95d; cursor: pointer; font: inherit; padding: 9px 12px; }.headerActions button:hover, button:focus-visible, .folderList button.selected { background: rgb(232 179 60 / 16%); border-color: #f4c95d; }.dangerButton { border-color: rgb(255 115 115 / 55%); color: #ff9a9a; }.libraryFilters { align-items: end; background: #0d131e; border: 1px solid rgb(151 169 203 / 18%); border-radius: 12px; display: grid; gap: 8px 12px; grid-template-columns: minmax(190px, 1fr) minmax(145px, 220px); margin-top: 24px; padding: 13px; }.libraryFilters label { color: #b7c5dc; font-size: .76rem; font-weight: 700; }.libraryFilters label:first-child { grid-column: 1 / -1; }.libraryFilters input, .libraryFilters select { background: #070b11; border: 1px solid rgb(151 169 203 / 35%); border-radius: 8px; color: #eff4ff; font: inherit; min-width: 0; padding: 9px 10px; }.libraryFilters label:nth-of-type(2) { grid-column: 2; grid-row: 2; }.libraryFilters select { grid-column: 2; grid-row: 3; }.emptyState { align-items: center; border: 1px dashed rgb(151 169 203 / 28%); border-radius: 16px; color: #b7c5dc; display: flex; flex-direction: column; margin-top: 28px; padding: 56px 20px; text-align: center; }.emptyState svg { color: #f4c95d; font-size: 2.5rem; }.emptyState h2 { color: #edf3ff; margin-bottom: 0; }.emptyState a, .manageFoldersLink { color: #f4c95d; margin-top: 8px; }.libraryGrid { display: grid; gap: 18px; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); list-style: none; margin: 28px 0 0; padding: 0; }.libraryCard { background: #101722; border: 1px solid rgb(151 169 203 / 16%); border-radius: 12px; overflow: hidden; }.cardLink { color: inherit; display: block; text-decoration: none; }.cardLink img { aspect-ratio: 16 / 9; background: #05070b; display: block; object-fit: cover; width: 100%; }.cardBody { display: grid; gap: 5px; padding: 12px; }.cardBody strong { line-height: 1.35; }.cardBody small, .cardFooter time { color: #9daec8; }.cardFooter { align-items: center; border-top: 1px solid rgb(151 169 203 / 12%); display: flex; gap: 10px; justify-content: space-between; padding: 10px 12px; }.cardFooter time { font-size: .72rem; }.cardFooter button { border-color: transparent; font-size: .78rem; padding: 4px 0; }.manageFoldersLink { display: inline-block; font-weight: 700; }.folderComposer { background: #101722; border: 1px solid rgb(151 169 203 / 18%); border-radius: 13px; margin-top: 14px; padding: 18px; }.folderComposer label, .renameRow label { display: block; font-size: .8rem; font-weight: 700; margin-bottom: 7px; }.folderComposer div, .renameRow { display: flex; gap: 8px; }.folderComposer input, .renameRow input { background: #070b11; border: 1px solid rgb(151 169 203 / 35%); border-radius: 8px; color: #eff4ff; flex: 1; font: inherit; min-width: 0; padding: 9px 10px; }.folderComposer p, .folderHelp { color: #9daec8; font-size: .78rem; margin: 10px 0 0; }.folderWorkspace { display: grid; gap: 22px; grid-template-columns: minmax(210px, 280px) 1fr; margin-top: 24px; }.folderList { display: grid; gap: 7px; list-style: none; margin: 0; padding: 0; }.folderList button { background: #0d131e; border: 1px solid rgb(151 169 203 / 18%); border-radius: 8px; color: #eaf0fa; cursor: pointer; display: flex; gap: 8px; padding: 10px; text-align: left; width: 100%; }.folderList svg { color: #f4c95d; }.folderList small { color: #9daec8; margin-left: auto; }.folderDetails { background: #101722; border: 1px solid rgb(151 169 203 / 18%); border-radius: 13px; padding: 20px; }.folderTitleRow { align-items: center; display: flex; gap: 14px; justify-content: space-between; }.folderTitleRow h2 { margin: 0; }.renameRow { margin-top: 15px; }.renameRow label { align-self: center; margin: 0; }.membershipList { display: grid; gap: 9px; list-style: none; margin: 18px 0 0; padding: 0; }.membershipList label { align-items: center; background: #0a0f17; border: 1px solid rgb(151 169 203 / 16%); border-radius: 9px; cursor: pointer; display: flex; gap: 10px; padding: 8px; }.membershipList input { accent-color: #f4c95d; }.membershipList img { aspect-ratio: 16 / 9; object-fit: cover; width: 92px; }.membershipList span { display: grid; gap: 3px; min-width: 0; }.membershipList strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }.membershipList small { color: #9daec8; }.emptyFolderMessage { color: #9daec8; }
+@media (width <= 680px) { .aegisWebLibrary { padding: 18px 14px; }.libraryHeader, .folderWorkspace { flex-direction: column; grid-template-columns: 1fr; }.headerActions { justify-content: flex-start; }.headerActions button { flex: 1; }.libraryFilters { grid-template-columns: 1fr; }.libraryFilters label:nth-of-type(2), .libraryFilters select { grid-column: 1; }.libraryFilters label:nth-of-type(2) { grid-row: auto; }.libraryFilters select { grid-row: auto; }.folderTitleRow { align-items: flex-start; flex-direction: column; }.folderComposer div, .renameRow { flex-wrap: wrap; }.folderComposer input, .renameRow input { flex-basis: 100%; }.folderComposer button, .renameRow button { flex: 1; } }
+.libraryFilters .filterField { display: grid; gap: 7px; }.libraryFilters .filterField:first-child { grid-column: auto; }.libraryFilters .filterField:nth-of-type(2) { grid-column: auto; grid-row: auto; }.libraryFilters .filterField input, .libraryFilters .filterField select { grid-column: auto; grid-row: auto; }
 </style>
