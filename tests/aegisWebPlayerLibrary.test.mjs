@@ -1,20 +1,31 @@
 import assert from 'node:assert/strict'
 import {
+  AEGIS_WEB_FOLDER_LIMIT,
+  AEGIS_WEB_FOLDER_MEMBERSHIP_LIMIT,
   AEGIS_WEB_FAVORITES_LIMIT,
   AEGIS_WEB_HISTORY_LIMIT,
+  AEGIS_WEB_TOTAL_FOLDER_MEMBERSHIPS_LIMIT,
   clearAegisWebLibraryCollection,
+  createAegisWebFolder,
+  createAegisWebLibraryExport,
+  deleteAegisWebFolder,
   isAegisWebFavorite,
   readAegisWebLibrary,
   recordAegisWebHistory,
+  renameAegisWebFolder,
   toggleAegisWebFavorite,
+  toggleAegisWebFolderMembership,
   updateAegisWebPlayerPreferences,
 } from '../src/renderer/helpers/aegisWebLibrary.js'
 import {
   AEGIS_WEB_PLAYER_MESSAGE_ORIGIN,
   clampAegisWebPlayerVolume,
   createAegisWebPlayerCommand,
+  readAegisWebPlayerCurrentTime,
   resolveAegisWebPlayerShortcut,
 } from '../src/renderer/helpers/aegisWebPlayerControls.js'
+import { normalizeAegisWebMiniPlayerEntry } from '../src/renderer/helpers/aegisWebMiniPlayer.js'
+import { createAegisWebPlaybackUrl } from '../src/renderer/helpers/aegisWebPlayback.js'
 
 class MemoryStorage {
   #values = new Map()
@@ -49,10 +60,25 @@ test('keyboard routing ignores editable and modifier contexts while preserving r
 test('official-player commands are allowlisted, serialized, and never accept arbitrary functions', () => {
   assert.equal(AEGIS_WEB_PLAYER_MESSAGE_ORIGIN, 'https://www.youtube-nocookie.com')
   assert.deepEqual(JSON.parse(createAegisWebPlayerCommand('setVolume', [75])), { event: 'command', func: 'setVolume', args: [75] })
+  assert.deepEqual(JSON.parse(createAegisWebPlayerCommand('getCurrentTime')), { event: 'command', func: 'getCurrentTime', args: [] })
   assert.equal(createAegisWebPlayerCommand('loadVideoByUrl', ['https://evil.example']), null)
   assert.equal(createAegisWebPlayerCommand('setVolume', [101]), null)
   assert.equal(clampAegisWebPlayerVolume(103), 100)
   assert.equal(clampAegisWebPlayerVolume(-1), 0)
+})
+
+test('player-time messages are bounded and only valid mini-player entries retain canonical metadata', () => {
+  assert.equal(readAegisWebPlayerCurrentTime({ info: { currentTime: 72.8 } }), 72)
+  assert.equal(readAegisWebPlayerCurrentTime({ info: { currentTime: 43201 } }), null)
+  assert.equal(readAegisWebPlayerCurrentTime('{bad'), null)
+  assert.deepEqual(normalizeAegisWebMiniPlayerEntry({ ...firstVideo, resumeSeconds: 8.9 }), {
+    videoId: firstVideo.videoId,
+    title: firstVideo.title,
+    author: firstVideo.author,
+    thumbnail: 'https://i.ytimg.com/vi/dQw4w9WgXcQ/mqdefault.jpg',
+    resumeSeconds: 8,
+  })
+  assert.equal(normalizeAegisWebMiniPlayerEntry({ ...firstVideo, videoId: 'https://bad.example' }), null)
 })
 
 test('favorites retain only validated canonical metadata and toggle deterministically', () => {
@@ -91,9 +117,61 @@ test('preference persistence keeps dark, theater, volume and mute state bounded'
   assert.deepEqual(readAegisWebLibrary(storage).preferences, preferences)
 })
 
+test('folders accept only favorite membership, preserve bounded names, and clean membership after a favorite is removed', () => {
+  toggleAegisWebFavorite(firstVideo, storage, 5000)
+  let library = createAegisWebFolder(' Research\nQueue ', storage, 5001, 'folder_research01')
+  assert.equal(library.folders[0].name, 'Research Queue')
+  assert.deepEqual(library.folders[0].videoIds, [])
+  library = toggleAegisWebFolderMembership('folder_research01', firstVideo.videoId, storage)
+  assert.deepEqual(library.folders[0].videoIds, [firstVideo.videoId])
+  library = toggleAegisWebFolderMembership('folder_research01', 'bad', storage)
+  assert.deepEqual(library.folders[0].videoIds, [firstVideo.videoId])
+  toggleAegisWebFavorite(firstVideo, storage, 5002)
+  assert.deepEqual(readAegisWebLibrary(storage).folders[0].videoIds, [])
+})
+
+test('folder rename, deletion, and identifier validation preserve a bounded local model', () => {
+  let library = createAegisWebFolder('Watch later', storage, 6000, 'folder_watchlater1')
+  library = renameAegisWebFolder('folder_watchlater1', 'Curated viewing', storage)
+  assert.equal(library.folders.find((folder) => folder.id === 'folder_watchlater1').name, 'Curated viewing')
+  const before = library.folders.length
+  library = createAegisWebFolder('Ignored', storage, 6001, 'unsafe-id')
+  assert.equal(library.folders.length, before)
+  library = deleteAegisWebFolder('folder_watchlater1', storage)
+  assert.equal(library.folders.some((folder) => folder.id === 'folder_watchlater1'), false)
+})
+
+test('exports are user-portable but include only bounded validated browser-local metadata with CSV formula neutralization', () => {
+  toggleAegisWebFavorite({ ...firstVideo, title: '=SUM(1,1)' }, storage, 7000)
+  recordAegisWebHistory(secondVideo, storage, 7001)
+  createAegisWebFolder('Backup folder', storage, 7002, 'folder_backup01')
+  toggleAegisWebFolderMembership('folder_backup01', firstVideo.videoId, storage)
+  const json = createAegisWebLibraryExport('json', storage, Date.UTC(2026, 8, 17))
+  const csv = createAegisWebLibraryExport('csv', storage, Date.UTC(2026, 8, 17))
+  assert.equal(json.filename, 'aegistube-library-2026-09-17.json')
+  assert.equal(json.mimeType, 'application/json;charset=utf-8')
+  assert.equal(JSON.parse(json.content).schema, 'aegistube-browser-library-backup')
+  assert.equal(csv.filename, 'aegistube-library-2026-09-17.csv')
+  assert.match(csv.content, /"'=SUM\(1,1\)"/)
+  assert.match(csv.content, /"folder-membership"/)
+  assert.equal(createAegisWebLibraryExport('zip', storage), null)
+})
+
+test('mini-player resume URLs remain constrained to a validated video ID, approved origin and bounded user handoff', () => {
+  const url = createAegisWebPlaybackUrl({ videoId: firstVideo.videoId, origin: 'https://os.aegisos.me', startSeconds: 12, autoplay: true })
+  assert.match(url, /^https:\/\/www\.youtube-nocookie\.com\/embed\/dQw4w9WgXcQ\?/)
+  assert.match(url, /(?:\?|&)start=12(?:&|$)/)
+  assert.match(url, /(?:\?|&)autoplay=1(?:&|$)/)
+  assert.equal(createAegisWebPlaybackUrl({ videoId: firstVideo.videoId, origin: 'https://evil.example', autoplay: true }), null)
+  assert.equal(createAegisWebPlaybackUrl({ videoId: firstVideo.videoId, origin: 'https://os.aegisos.me', startSeconds: 43201, autoplay: true }), null)
+})
+
 test('retention limits are explicit and bounded', () => {
   assert.equal(AEGIS_WEB_FAVORITES_LIMIT, 200)
   assert.equal(AEGIS_WEB_HISTORY_LIMIT, 500)
+  assert.equal(AEGIS_WEB_FOLDER_LIMIT, 50)
+  assert.equal(AEGIS_WEB_FOLDER_MEMBERSHIP_LIMIT, 200)
+  assert.equal(AEGIS_WEB_TOTAL_FOLDER_MEMBERSHIPS_LIMIT, 1000)
 })
 
 console.log(`PASS ${count} deterministic AegisTube web player and library fixtures`)

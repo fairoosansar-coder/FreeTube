@@ -27,10 +27,21 @@ export function resolveAegisWebPlayerShortcut(event) {
 }
 
 export function createAegisWebPlayerCommand(func, args = []) {
-  const allowed = new Set(['playVideo', 'pauseVideo', 'mute', 'unMute', 'setVolume'])
+  const allowed = new Set(['playVideo', 'pauseVideo', 'mute', 'unMute', 'setVolume', 'getCurrentTime'])
   if (!allowed.has(func)) return null
   if (func === 'setVolume' && (!Number.isInteger(args[0]) || args[0] < 0 || args[0] > 100)) return null
   return JSON.stringify({ event: 'command', func, args })
+}
+
+export function readAegisWebPlayerCurrentTime(message) {
+  let parsed = message
+  try {
+    if (typeof message === 'string') parsed = JSON.parse(message)
+  } catch {
+    return null
+  }
+  const value = parsed?.info?.currentTime
+  return Number.isFinite(value) && value >= 0 && value <= 43200 ? Math.floor(value) : null
 }
 
 export function clampAegisWebPlayerVolume(value) {

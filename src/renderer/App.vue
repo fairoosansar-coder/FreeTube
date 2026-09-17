@@ -52,6 +52,7 @@
         </Transition>
       </RouterView>
     </FtFlexBox>
+    <AegisWebMiniPlayer v-if="isAegisWebEdition" />
     <FtPrompt
       v-if="showReleaseNotes"
       theme="readable-width"
@@ -131,6 +132,7 @@ import FtCreatePlaylistPrompt from './components/FtCreatePlaylistPrompt/FtCreate
 import FtKeyboardShortcutPrompt from './components/FtKeyboardShortcutPrompt/FtKeyboardShortcutPrompt.vue'
 import FtSearchFilters from './components/FtSearchFilters/FtSearchFilters.vue'
 import AegisBoot from './components/AegisTubeShell/AegisBoot.vue'
+import AegisWebMiniPlayer from './components/AegisWebMiniPlayer/AegisWebMiniPlayer.vue'
 import { vSaferHtml } from './directives/vSaferHtml.js'
 
 import store from './store/index'
@@ -151,6 +153,7 @@ const route = useRoute()
 const router = useRouter()
 const { locale, t } = useI18n()
 const isAegisTube = process.env.AEGISTUBE_EDITION === true
+const isAegisWebEdition = process.env.AEGISOS_WEB_EDITION === true
 
 /** @type {import('vue').ComputedRef<boolean>} */
 const isSideNavOpen = computed(() => store.getters.getIsSideNavOpen)

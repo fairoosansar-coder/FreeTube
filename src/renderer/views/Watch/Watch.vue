@@ -26,6 +26,7 @@
             <span aria-live="polite">{{ aegisWebVolume }}%</span>
             <button type="button" title="Increase volume (Arrow Up)" @click="changeAegisWebVolume(5)">+</button>
             <button type="button" :aria-pressed="aegisWebFavorite" :title="aegisWebFavorite ? 'Remove from favorites' : 'Save to favorites'" @click="toggleAegisWebFavorite">Favorite</button>
+            <button type="button" title="Continue in mini player" @click="moveAegisWebPlayerToMini">Mini player</button>
             <span class="aegisWebControlSpacer" />
             <button type="button" :aria-pressed="aegisWebTheatreMode" title="Toggle theater mode (T)" @click="toggleAegisWebTheatre">Theater</button>
             <button type="button" :aria-pressed="aegisWebDarkMode" title="Toggle dark mode (D)" @click="toggleAegisWebDarkMode">Dark</button>

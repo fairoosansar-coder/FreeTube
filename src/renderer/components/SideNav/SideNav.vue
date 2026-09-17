@@ -64,6 +64,18 @@
           <span class="navLabel">Favorites</span>
         </router-link>
         <router-link
+          v-if="isAegisWebEdition"
+          class="navOption"
+          role="button"
+          to="/library/folders"
+          title="Folders & playlists"
+        >
+          <span class="thumbnailContainer">
+            <FontAwesomeIcon :icon="['fas', 'folder']" class="navIcon" />
+          </span>
+          <span class="navLabel">Folders</span>
+        </router-link>
+        <router-link
           class="navOption"
           role="button"
           :to="isAegisWebEdition ? '/library/history' : '/history'"
