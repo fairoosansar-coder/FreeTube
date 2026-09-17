@@ -80,7 +80,7 @@ const router = createRouter({
     },
     ...(process.env.AEGISOS_WEB_EDITION
       ? [{
-          path: '/library/:collection(favorites|history)',
+          path: '/library/:collection(favorites|history|folders)',
           name: 'aegisWebLibrary',
           meta: { title: 'Your library' },
           component: AegisWebLibrary,

@@ -51,6 +51,7 @@ import {
 import {
   clampAegisWebPlayerVolume,
   createAegisWebPlayerCommand,
+  readAegisWebPlayerCurrentTime,
   resolveAegisWebPlayerShortcut,
   AEGIS_WEB_PLAYER_MESSAGE_ORIGIN,
 } from '../../helpers/aegisWebPlayerControls'
@@ -61,6 +62,7 @@ import {
   readAegisWebLibrary,
   updateAegisWebPlayerPreferences,
 } from '../../helpers/aegisWebLibrary'
+import { dispatchAegisWebMiniPlayer } from '../../helpers/aegisWebMiniPlayer'
 import { sortCaptions } from '../../helpers/player/utils'
 import { MANIFEST_TYPE_SABR } from '../../helpers/player/SabrManifestParser'
 import { useI18n } from 'vue-i18n'
@@ -103,6 +105,7 @@ export default defineComponent({
   beforeRouteLeave: async function (to, from, next) {
     this.handleRouteChange()
     this.stopAegisWebPlayerControls()
+    window.removeEventListener('message', this.handleAegisWebPlayerMessage)
     window.removeEventListener('beforeunload', this.handleWatchProgressAutoSave)
     document.removeEventListener('keydown', this.resetAutoplayInterruptionTimeout)
     document.removeEventListener('click', this.resetAutoplayInterruptionTimeout)
@@ -206,6 +209,7 @@ export default defineComponent({
       aegisWebMuted: false,
       aegisWebAssumedPlaying: false,
       aegisWebFavorite: false,
+      aegisWebCurrentTime: 0,
     }
   },
   computed: {
@@ -531,6 +535,8 @@ export default defineComponent({
       this.aegisWebMuted = preferences.muted
       this.aegisWebFavorite = isAegisWebFavorite(this.videoId)
       recordAegisWebHistory({ videoId: this.videoId, title: this.videoTitle, author: this.channelName })
+      window.removeEventListener('message', this.handleAegisWebPlayerMessage)
+      window.addEventListener('message', this.handleAegisWebPlayerMessage)
       this.$nextTick(() => {
         this.startAegisWebPlayerControls()
         this.postAegisWebPlayerCommand('setVolume', [this.aegisWebVolume])
@@ -546,6 +552,12 @@ export default defineComponent({
 
     stopAegisWebPlayerControls: function () {
       document.removeEventListener('keydown', this.handleAegisWebPlayerShortcut)
+    },
+
+    handleAegisWebPlayerMessage: function (event) {
+      if (event?.origin !== AEGIS_WEB_PLAYER_MESSAGE_ORIGIN || event.source !== this.$refs.aegisWebPlayer?.contentWindow) return
+      const currentTime = readAegisWebPlayerCurrentTime(event.data)
+      if (currentTime !== null) this.aegisWebCurrentTime = currentTime
     },
 
     postAegisWebPlayerCommand: function (func, args = []) {
@@ -610,6 +622,23 @@ export default defineComponent({
     toggleAegisWebFavorite: function () {
       const result = toggleAegisWebFavorite({ videoId: this.videoId, title: this.videoTitle, author: this.channelName })
       this.aegisWebFavorite = result.isFavorite
+    },
+
+    moveAegisWebPlayerToMini: function () {
+      if (!this.isAegisWebPlayback) return
+      // This message targets the official player only. The short delay lets its
+      // fixed-origin API answer a current-time request; zero remains safe when
+      // the external player does not provide timing information.
+      this.postAegisWebPlayerCommand('getCurrentTime')
+      window.setTimeout(() => {
+        const handedOff = dispatchAegisWebMiniPlayer({
+          videoId: this.videoId,
+          title: this.videoTitle,
+          author: this.channelName,
+          resumeSeconds: this.aegisWebCurrentTime,
+        })
+        if (handedOff) this.$router.push('/popular')
+      }, 150)
     },
 
     setViewingModeOnFirstLoad: function () {

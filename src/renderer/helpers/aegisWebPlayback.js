@@ -27,18 +27,23 @@ export function isAllowedAegisWebOrigin(value) {
  * canonical video ID and an AegisOS-hosted origin: no stream URL, arbitrary
  * host, download parameter, playlist injection, or authenticated relay.
  */
-export function createAegisWebPlaybackUrl({ videoId, origin }) {
+export function createAegisWebPlaybackUrl({ videoId, origin, startSeconds = 0, autoplay = false }) {
   if (typeof videoId !== 'string' || !VIDEO_ID_PATTERN.test(videoId)) return null
   if (!isAllowedAegisWebOrigin(origin)) return null
+  if (!Number.isInteger(startSeconds) || startSeconds < 0 || startSeconds > 43200) return null
+  if (typeof autoplay !== 'boolean') return null
 
   const url = new URL(`/embed/${videoId}`, AEGIS_WEB_PLAYBACK_EMBED_ORIGIN)
-  url.searchParams.set('autoplay', '0')
+  // Browser embeds do not autoplay by default. The mini-player may set this
+  // after a direct user handoff, so continued viewing is never background work.
+  url.searchParams.set('autoplay', autoplay ? '1' : '0')
   url.searchParams.set('controls', '1')
   url.searchParams.set('enablejsapi', '1')
   url.searchParams.set('iv_load_policy', '3')
   url.searchParams.set('origin', origin)
   url.searchParams.set('playsinline', '1')
   url.searchParams.set('rel', '0')
+  if (startSeconds > 0) url.searchParams.set('start', String(startSeconds))
   return url.toString()
 }
 
